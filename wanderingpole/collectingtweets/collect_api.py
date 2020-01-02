@@ -123,12 +123,18 @@ def get_tweets_list(ids, screen_name):
         end += 100
         # update the progress bar
         my_bar.update(go)
-    # load what I already had and write in new
-    with open(f'../data/{screen_name}_tweets.json') as f:
-        prev_json = json.load(f)
-    prev_json += all_data
-    with open(f'../data/{screen_name}_tweets.json', 'w') as f:
-        json.dump(prev_json, f)
+    # load what I already had and write in new# 
+    all_df = pd.DataFrame(all_data)
+    prev = pd.read_json(f'data/{screen_name}_tweets.json')
+    prev = pd.concat([prev, all_df])
+    prev = prev.drop_duplicates(subset=['tweet_id'])
+    prev.to_json(f'data/{screen_name}_tweets.json'
+
+    # with open(f'data/{screen_name}_tweets.json') as f:
+    #     prev_json = json.load(f)
+    # prev_json += all_data
+    # with open(f'data/{screen_name}_tweets.json', 'w') as f:
+    #     json.dump(prev_json, f)
 
 
 def get_tweets_user(screen_name):
@@ -136,7 +142,7 @@ def get_tweets_user(screen_name):
     use the functions to download and save the most recent 3240 tweets
     """
     # load in the data I already have
-    outname = '../data/{}_tweets.json'.format(screen_name)
+    outname = 'data/{}_tweets.json'.format(screen_name)
     try:
         with open(outname) as f:
             old_tweets = json.load(f)
@@ -162,10 +168,10 @@ def get_tweets_user(screen_name):
             # process the tweets
             processed = process_tweet(new_tweet)
             # break if I already have a tweet(caught up to history)
-            if processed['tweet_id'] in old_ids:
-                break
-            else:
-                all_new_tweets.append(processed)
+            # if processed['tweet_id'] in old_ids:
+            #     break
+            # else:
+            all_new_tweets.append(processed)
             # update progress
             my_bar.update(len(all_new_tweets))
         except tweepy.TweepError:
@@ -179,8 +185,11 @@ def get_tweets_user(screen_name):
         # append the new tweets
         tweets = old_tweets + all_new_tweets
         # write to disc
-        with open(outname, 'w') as fout:
-            json.dump(tweets, fout)
+        tweets_df = pd.DataFrame(tweets)
+        tweets_df = tweets_df.drop_duplicates(subset=['tweet_id'])
+        tweets_df.to_json(outname)
+        # with open(outname, 'w') as fout:
+        #     json.dump(tweets, fout)
     else:
         # if no new tweets, sleep for a minute to avoid rate limits
         print('No new tweets')
