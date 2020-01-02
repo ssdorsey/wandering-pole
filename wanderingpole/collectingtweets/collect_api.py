@@ -128,7 +128,7 @@ def get_tweets_list(ids, screen_name):
     prev = pd.read_json(f'data/{screen_name}_tweets.json')
     prev = pd.concat([prev, all_df])
     prev = prev.drop_duplicates(subset=['tweet_id'])
-    prev.to_json(f'data/{screen_name}_tweets.json'
+    prev.to_json(f'data/{screen_name}_tweets.json')
 
     # with open(f'data/{screen_name}_tweets.json') as f:
     #     prev_json = json.load(f)
