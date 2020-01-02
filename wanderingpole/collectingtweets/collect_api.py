@@ -7,6 +7,7 @@ code for pulling:
 
 @ S.S. Dorsey
 """
+import pandas as pd
 import datetime
 import json
 from time import sleep
@@ -18,10 +19,10 @@ import progressbar
 # credentials
 # ------------------------------------------------------------------------------
 #Twitter API credentials
-consumer_key = 
-consumer_secret = 
-access_key = 
-access_secret = 
+consumer_key =
+consumer_secret =
+access_key =
+access_secret =
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_key, access_secret)
@@ -144,10 +145,12 @@ def get_tweets_user(screen_name):
     # load in the data I already have
     outname = 'data/{}_tweets.json'.format(screen_name)
     try:
-        with open(outname) as f:
-            old_tweets = json.load(f)
-        old_ids = [t['tweet_id'] for t in old_tweets]
-    except FileNotFoundError:
+        old_tweets = pd.read_json(outname)
+        old_ids = set(old_tweets['tweet_id'])
+        # with open(outname) as f:
+        #     old_tweets = json.load(f)
+        # old_ids = [t['tweet_id'] for t in old_tweets]
+    except:
         old_tweets = []
         old_ids = []
     # get new
@@ -169,6 +172,7 @@ def get_tweets_user(screen_name):
             processed = process_tweet(new_tweet)
             # break if I already have a tweet(caught up to history)
             # if processed['tweet_id'] in old_ids:
+            #     all_new_tweets.append(processed)
             #     break
             # else:
             all_new_tweets.append(processed)
@@ -183,11 +187,16 @@ def get_tweets_user(screen_name):
             break
     if len(all_new_tweets) > 0:
         # append the new tweets
-        tweets = old_tweets + all_new_tweets
+        all_new_tweets_df = pd.DataFrame(all_new_tweets)
+        if len(old_tweets) > 0:
+            tweets = pd.concat([old_tweets, all_new_tweets_df], sort=True)
+        else:
+            tweets = all_new_tweets_df
         # write to disc
-        tweets_df = pd.DataFrame(tweets)
-        tweets_df = tweets_df.drop_duplicates(subset=['tweet_id'])
-        tweets_df.to_json(outname)
+        if len(tweets) > 0:
+            tweets = tweets.drop_duplicates(subset=['tweet_id'])
+            tweets = tweets.reset_index(drop=True)
+            tweets.to_json(outname)
         # with open(outname, 'w') as fout:
         #     json.dump(tweets, fout)
     else:
