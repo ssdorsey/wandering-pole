@@ -15,17 +15,25 @@ import math
 import tweepy
 import progressbar
 
+from pymongo.errors import DuplicateKeyError
+from pymongo import MongoClient
+
+
 # ------------------------------------------------------------------------------
 # credentials
 # ------------------------------------------------------------------------------
-#Twitter API credentials
-consumer_key =
-consumer_secret =
-access_key =
-access_secret =
+# mongo
+with open('wanderingpole/collectingtweets/mongo_uri.txt', 'r') as _file:
+    mongo_uri = _file.read()
 
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_key, access_secret)
+db = MongoClient(mongo_uri).wanderingpole
+
+#Twitter API credentials
+with open('wanderingpole/collectingtweets/keys_secrets.json', 'r') as _file:
+    keys_secrets = json.load(_file)
+
+auth = tweepy.OAuthHandler(keys_secrets['consumer_key'], keys_secrets['consumer_secret'])
+auth.set_access_token(keys_secrets['access_key'], keys_secrets['access_secret'])
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 # ------------------------------------------------------------------------------
@@ -56,54 +64,23 @@ def process_tweet(tweet):
     input: single tweet from tweepy
     output: dictionary of the data I want
     """
-    # dictionary for holding everything
-    hold_dict = {}
-    # pulling all the values
-    hold_dict['screen_name'] = tweet.user.screen_name
-    hold_dict['tweet_id'] = tweet.id_str
-    hold_dict['date'] = tweet.created_at.strftime("%Y-%m-%d %H:%M")
-    hold_dict['date_collected'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    if 'full_text' in dir(tweet):
-        hold_dict['text'] = tweet.full_text
-    else:
-        hold_dict['text'] = tweet.text
-    hold_dict['retweets'] = tweet.retweet_count
-    hold_dict['favorites'] = tweet.favorite_count
-    hold_dict['mentions'] = [user['screen_name'] for user in tweet._json['entities']['user_mentions']]
-    hold_dict['retweeted'] = tweet.retweeted
-    hold_dict['reply_to'] = tweet.in_reply_to_screen_name
-    if hold_dict['reply_to'] is None:
-        hold_dict['reply_to'] = '' # check for compatibility
-    if 'hashtags' in tweet._json['entities']:
-        hold_dict['hashes'] = [hash['text'] for hash in tweet._json['entities']['hashtags']]
-    else: hold_dict['hashes'] = []
-    if 'urls' in tweet._json['entities']:
-        hold_dict['gen_links'] = [link['expanded_url'] for link in tweet._json['entities']['urls']]
-    else: hold_dict['gen_links'] = []
-    # some exception handling below because many posts don't have pictures/videos
+    _json = tweet._json
+    _json['date_collected'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
     try:
-        if tweet._json['extended_entities']['media'][0]['type'] == 'photo':
-            hold_dict['photo_link'] = tweet._json['extended_entities']['media'][0]['media_url']
-    except KeyError:
-        hold_dict['photo_link'] = ''
-    try:
-        if tweet._json['extended_entities']['media'][0]['type'] == 'video':
-            hold_dict['video_link'] = (tweet._json['extended_entities']['media']
-                                       [0]['video_info']['variants'][0]['url'])
-    except KeyError:
-        hold_dict['video_link'] = ''
-    return hold_dict
+        db.tweets.insert_one(
+            _json
+        )
+    except DuplicateKeyError:
+        print(f'Error inserting: {_json["id"]}')
+        pass
+    return _json
 
 
-def get_tweets_list(ids, screen_name):
+def get_tweets_list(ids):
     """
-    download a list of tweets based on id
+    download a list of tweets based on ids
     """
-    print('# --------------------------------')
-    print(f'{screen_name} via api')
-    print('# --------------------------------')
-    #initialize a list to hold all the tweepy Tweets
-    all_data = []
     # set up batching for the Twitter api
     start = 0
     end = 100
@@ -118,41 +95,22 @@ def get_tweets_list(ids, screen_name):
         tweets = api.statuses_lookup(id_batch)
         # process the tweets
         for tweet in tweets:
-            all_data.append(process_tweet(tweet))
+            process_tweet(tweet)
         # move to next batch
         start += 100
         end += 100
         # update the progress bar
         my_bar.update(go)
-    # load what I already had and write in new# 
-    all_df = pd.DataFrame(all_data)
-    prev = pd.read_json(f'data/{screen_name}_tweets.json')
-    prev = pd.concat([prev, all_df])
-    prev = prev.drop_duplicates(subset=['tweet_id'])
-    prev.to_json(f'data/{screen_name}_tweets.json')
-
-    # with open(f'data/{screen_name}_tweets.json') as f:
-    #     prev_json = json.load(f)
-    # prev_json += all_data
-    # with open(f'data/{screen_name}_tweets.json', 'w') as f:
-    #     json.dump(prev_json, f)
 
 
 def get_tweets_user(screen_name):
     """
     use the functions to download and save the most recent 3240 tweets
     """
-    # load in the data I already have
-    outname = 'data/{}_tweets.json'.format(screen_name)
-    try:
-        old_tweets = pd.read_json(outname)
-        old_ids = set(old_tweets['tweet_id'])
-        # with open(outname) as f:
-        #     old_tweets = json.load(f)
-        # old_ids = [t['tweet_id'] for t in old_tweets]
-    except:
-        old_tweets = []
-        old_ids = []
+    old_cursor = db.tweets.find(
+        {'user.screen_name': screen_name}
+    )
+    old_ids = set([doc['id'] for doc in old_cursor])
     # get new
     print('# --------------------------------')
     print('{} via api'.format(screen_name))
@@ -170,12 +128,10 @@ def get_tweets_user(screen_name):
             new_tweet = cursor.next()
             # process the tweets
             processed = process_tweet(new_tweet)
-            # break if I already have a tweet(caught up to history)
-            # if processed['tweet_id'] in old_ids:
-            #     all_new_tweets.append(processed)
-            #     break
-            # else:
             all_new_tweets.append(processed)
+            # break if I already have a tweet(caught up to history)
+            if processed['id'] in old_ids:
+                break
             # update progress
             my_bar.update(len(all_new_tweets))
         except tweepy.TweepError:
@@ -185,21 +141,4 @@ def get_tweets_user(screen_name):
             break
         except StopIteration:
             break
-    if len(all_new_tweets) > 0:
-        # append the new tweets
-        all_new_tweets_df = pd.DataFrame(all_new_tweets)
-        if len(old_tweets) > 0:
-            tweets = pd.concat([old_tweets, all_new_tweets_df], sort=True)
-        else:
-            tweets = all_new_tweets_df
-        # write to disc
-        if len(tweets) > 0:
-            tweets = tweets.drop_duplicates(subset=['tweet_id'])
-            tweets = tweets.reset_index(drop=True)
-            tweets.to_json(outname)
-        # with open(outname, 'w') as fout:
-        #     json.dump(tweets, fout)
-    else:
-        # if no new tweets, sleep for a minute to avoid rate limits
-        print('No new tweets')
-        # sleep(60)
+

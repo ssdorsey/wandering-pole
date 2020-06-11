@@ -1,2 +1,5 @@
 .vscode
 .ipynb_checkpoints
+/model/*
+keys_secrets.json
+mongo_uri.txt

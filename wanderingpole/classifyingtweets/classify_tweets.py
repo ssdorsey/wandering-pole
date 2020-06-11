@@ -1,55 +1,55 @@
-import pandas as pd
-import numpy as np
-import json
-from simpletransformers.classification import ClassificationModel
-import sklearn
-import torch
-import re
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import os
 from tqdm import tqdm
+from simpletransformers.classification import ClassificationModel
+from pymongo import MongoClient
 
-np.random.seed(619)
+db = MongoClient().wanderingpole
 
-def process_json(filename):
-    """reads and classifies tweets from a json"""
-    # load the tweets
-    with open(f'data/'+filename) as f:
-        prev_json = json.load(f)
-    # fix the weird thing with AGBecerra
-    handle = filename.split('_tweets.json')[0]
-    filtered = []
-    for ii in prev_json:
-        if ii['screen_name'] == handle:
-            filtered.append(ii)
-        elif ii['retweeted']:
-            filtered.append(ii)
-    prev_json = filtered
-    # pull the text
-    text = [dd['text'] for dd in prev_json]
-    if len(text) > 0:
-        # classify them
-        results, model_outputs = model.predict(text)
-        # write back out
-        for ii in range(len(prev_json)):
-            prev_json[ii]['polarizing'] = int(results[ii])
-    with open(f'data/'+filename, 'w') as f:
-        json.dump(prev_json, f)
 
+def process_docs(list_docs):
+    """reads and classifies tweets from a mongodb"""
+    # make sure there are no empty tweets
+    list_docs = [_doc for _doc in list_docs if 'text' in _doc]
+    list_docs = [_doc for _doc in list_docs if len(_doc['text']) > 0]
+    # pull the tweets
+    text = [_doc['text'] for _doc in list_docs]
+    # classify them
+    results, model_outputs = model.predict(text)
+    # write back into db
+    for nn, _doc in enumerate(list_docs):
+        db.tweets.update_one(
+            {
+                '_id': _doc['_id']
+            },
+            {
+                '$set': {
+                    'incivil': int(results[nn]),
+                    'model_outputs': [float(mo) for mo in model_outputs[nn]]
+                }
+            }
+        )
 
 if __name__ == "__main__":
     # load the model
     model = ClassificationModel('roberta'
-                            , 'ModelOutput/'
+                            , 'wanderingpole/model/'
                             , num_labels=2
-                            , args={'eval_batch_size':512})
+                            , args={'eval_batch_size':1024})
 
-    # load the tweet filenames
-    jsons = [ii for ii in os.listdir('data/') if ii.endswith('.json')]
+    cursor = db.tweets.find(
+        {
+            'incivil': {'$exists': False}
+        }
+    )
 
-    # classify the tweets
-    for ff in tqdm(jsons):
-        print('STARTING ' + ff)
-        process_json(ff)
-
+    hold_ee = []
+    for _doc in tqdm(cursor):
+        # collect the doc
+        hold_ee.append(_doc)
+        # process 10k at a time
+        if len(hold_ee) >= 10000:
+            process_docs(hold_ee)
+            hold_ee = []
+    # process whatever's left over
+    if len(hold_ee) > 0:
+        process_docs(hold_ee)
