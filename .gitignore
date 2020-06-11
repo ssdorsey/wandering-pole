@@ -1,5 +1,7 @@
 .vscode
 .ipynb_checkpoints
-/model/*
+*\model\*
+*/model/*
 keys_secrets.json
 mongo_uri.txt
+*__pycache__*
