@@ -23,13 +23,13 @@ from pymongo import MongoClient
 # credentials
 # ------------------------------------------------------------------------------
 # mongo
-with open('wanderingpole/collectingtweets/mongo_uri.txt', 'r') as _file:
+with open('mongo_uri.txt', 'r') as _file:
     mongo_uri = _file.read()
 
 db = MongoClient(mongo_uri).wanderingpole
 
 #Twitter API credentials
-with open('wanderingpole/collectingtweets/keys_secrets.json', 'r') as _file:
+with open('keys_secrets.json', 'r') as _file:
     keys_secrets = json.load(_file)
 
 auth = tweepy.OAuthHandler(keys_secrets['consumer_key'], keys_secrets['consumer_secret'])

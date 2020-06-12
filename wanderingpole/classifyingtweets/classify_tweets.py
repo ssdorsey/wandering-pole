@@ -3,7 +3,11 @@ from tqdm import tqdm
 from simpletransformers.classification import ClassificationModel
 from pymongo import MongoClient
 
-db = MongoClient().wanderingpole
+# mongo
+with open('mongo_uri.txt', 'r') as _file:
+    mongo_uri = _file.read()
+
+db = MongoClient(mongo_uri).wanderingpole
 
 
 def process_docs(list_docs):
@@ -47,7 +51,7 @@ if __name__ == "__main__":
         # collect the doc
         hold_ee.append(_doc)
         # process 10k at a time
-        if len(hold_ee) >= 10000:
+        if len(hold_ee) >= 1024:
             process_docs(hold_ee)
             hold_ee = []
     # process whatever's left over
