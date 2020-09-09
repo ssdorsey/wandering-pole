@@ -52,9 +52,11 @@ save(mFull, mIdeol, mSeniority, mSeniorityIdeol, file='~/Dropbox/Projects/Twitte
 # load('~/Dropbox/Projects/Twitter/invicilityMods.rds')
 
 
+
+#############################################################################################################################################################################################################
 ### Presentation (coefficient plots, marginal effects, regression table)
 
-## Coefficient plots
+### Coefficient plots
 # Full and full(seniority) together
 coefBoth <- plot_coefs(mFull, mSeniority, 
                        coefs=c(`President's Party`='memberPresPty', `Electoral Safety`='absPVI', `House`='house', `Female`='female', `Seniority`='years'), 
@@ -116,6 +118,7 @@ c115 <- do.call('rbind', replicate(1366, congDat[4,], simplify=FALSE))
 cDat <- rbind(c112, c113, c114, c115)
 
 # Put together a DF of covariates
+pDat <- do.call("rbind", replicate(8, icpsrDat, simplify = FALSE))
 index <- nrow(pDat)/8
 covs <- data.frame(`(Intercept)`=rep(1, index*2),
                    memberPresPty=c(rep(0, index), rep(1, index)),
@@ -127,7 +130,6 @@ covs <- data.frame(`(Intercept)`=rep(1, index*2),
 covs <- do.call("rbind", replicate(4, covs, simplify = FALSE))
 
 # Put it all together
-pDat <- do.call("rbind", replicate(8, icpsrDat, simplify = FALSE))
 pDat <- cbind(cDat, pDat)
 pDat <- cbind(covs, pDat)
 pDat <- as.matrix(pDat)
@@ -218,3 +220,29 @@ effSizeId <- pDatId %>%
   dplyr::summarise(avg=mean(pred)) 
 effSizeId
 diff(effSizeId$avg)
+  
+
+### Plot effect sizes
+
+# Effect sizes
+effPres <- abs(diff(effSize$avg))
+effId <- abs(diff(effSizeId$avg))
+effs <- c(effPres, effId)
+
+# Uncertainty estimate
+coefPres <- summary(mSeniority)$coefficients
+uncertPres <- abs(coefPres['memberPresPty', 'Std. Error']/coefPres['memberPresPty','Estimate'])*effPres*1.96*2
+coefId <- summary(mSeniorityIdeol)$coefficients
+uncertId <- abs(coefId['ideolDiffPos', 'Std. Error']/coefId['ideolDiffPos','Estimate'])*effId*1.96*2
+unc <- c(uncertPres, uncertId)
+
+
+barCenters <- barplot(c(effPres, effId), ylim=c(0, 0.15))
+pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects.pdf', width=6, height=6)
+barplot(effs, ylim=c(0, 0.15), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological\nExtremity'))
+for(ii in 1:2){
+  segments(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3)
+  arrows(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3, angle=90, code=3, length=0.05)  
+  text(x=barCenters[ii], y=effs[ii]/2, paste0(round(effs[ii], 3), ' +/- ', round(unc[ii], 3)))
+}
+dev.off()
