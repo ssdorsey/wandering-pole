@@ -118,12 +118,13 @@ effs <- sapply(list(mFave, mRT), function(x){
 # Plot and save
 barCenters <- barplot(effs[,1], ylim=c(0, 250))
 pdf('~/Dropbox/Projects/Twitter/engageMods_effects.pdf', width=6, height=6)
-barplot(effs[,1], ylim=c(0, 250), ylab='Effect Size', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
+par(mar=c(3.1, 4.1, 2.1, 1.1))
+barplot(effs[,1], ylim=c(0, 250), ylab='Effect of Political Incivility', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
   text(x=barCenters[ii], y=effs[ii,1]/2, paste0(round(effs[ii,1], 2), ' +/- ', round(effs[ii,2], 2)))
 }
 dev.off()
-
+par(mar=c(5.1, 4.1, 4.1, 2.1))
       

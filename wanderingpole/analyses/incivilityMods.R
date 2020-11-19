@@ -229,20 +229,22 @@ effPres <- abs(diff(effSize$avg))
 effId <- abs(diff(effSizeId$avg))
 effs <- c(effPres, effId)
 
-# Uncertainty estimate
+# Uncertainty estimates
 coefPres <- summary(mSeniority)$coefficients
 uncertPres <- abs(coefPres['memberPresPty', 'Std. Error']/coefPres['memberPresPty','Estimate'])*effPres*1.96*2
 coefId <- summary(mSeniorityIdeol)$coefficients
 uncertId <- abs(coefId['ideolDiffPos', 'Std. Error']/coefId['ideolDiffPos','Estimate'])*effId*1.96*2
 unc <- c(uncertPres, uncertId)
 
-
+# Plot and save
 barCenters <- barplot(c(effPres, effId), ylim=c(0, 0.15))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects.pdf', width=6, height=6)
-barplot(effs, ylim=c(0, 0.15), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological\nExtremity'))
+par(mar=c(3.1, 4.1, 2.1, 1.1))
+barplot(effs, ylim=c(0, 0.15), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3, angle=90, code=3, length=0.05)  
   text(x=barCenters[ii], y=effs[ii]/2, paste0(round(effs[ii], 3), ' +/- ', round(unc[ii], 3)))
 }
 dev.off()
+par(mar=c(5.1, 4.1, 4.1, 2.1))
