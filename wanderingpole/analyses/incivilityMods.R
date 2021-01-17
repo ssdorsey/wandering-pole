@@ -249,3 +249,16 @@ for(ii in 1:2){
 }
 dev.off()
 par(mar=c(5.1, 4.1, 4.1, 2.1))
+
+
+### Effect sizes as a distribution of member incivility
+
+ucd <- tw %>%
+  group_by(icpsr, congress) %>%
+  dplyr::summarise(
+    avg=prop.table(table(uncivil))['1']
+  )
+ucd$avg[is.na(ucd$avg)] <- 0
+
+effPres/sd(ucd$avg)
+effId/sd(ucd$avg)
