@@ -9,16 +9,17 @@ library(sjPlot)
 library(speedglm)
 library(prediction)
 library(coefplot)
-setwd('~/Dropbox/Projects/Twitter/Twitter')
+setwd('~/Dropbox/Projects/Twitter')
 
 # Load classified tweets
-tw <- fread('DELETE_vizframe.csv', data.table=FALSE, stringsAsFactors=FALSE) %>% dplyr::select(-V1)
+tw <- fread('tweets.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
 tw %<>% 
+  dplyr::rename(screen_name=user.screen_name) %>%
   mutate(screen_name=tolower(screen_name)) %>%
   filter(screen_name!='')
 
 # Load master list of handles to merge with member data
-hand <- fread('master_handles.csv', data.table = FALSE, stringsAsFactors = FALSE) %>%
+hand <- fread('Twitter/master_handles.csv', data.table = FALSE, stringsAsFactors = FALSE) %>%
   dplyr::rename(screen_name=twitter) %>%
   mutate(screen_name=tolower(screen_name))
 hand$district[hand$chamber=='Senate'] <- 0
@@ -32,14 +33,17 @@ identical(unTW, sort(intersect(unHand, unTW)))
 # Merge by handle
 tw <- tw %>%
   dplyr::select(-c(chamber, party)) %>%
-  left_join(., hand, by='screen_name')
+  left_join(., hand, by='screen_name') %>%
+  dplyr::rename(icpsr=icpsr.y) %>%
+  dplyr::select(-icpsr.x)
 
 # Load data on members to merge in
-mcs <- readRDS('Data/mergedMemberERData.rds')
+mcs <- readRDS('Twitter/Data/mergedMemberERData.rds')
 
 # Convert date in TW to a date
-tw$datetime <- ymd_hms(tw$date)
+tw$datetime <- ymd_hms(tw$created_at)
 tw$date <- date(tw$datetime)
+tw %<>% filter(!is.na(date))
 
 # Add Congress to tw
 dates <- list(`110`=interval(ymd('2007-01-03'), ymd('2009-01-02')),
@@ -88,7 +92,7 @@ dupes <- dupes %>%
 mcs <- rbind(mcs, dupes)
 
 # Load in PVI data for 115th, format to merge with mcs
-pvi <- fread('pviData115.csv', data.table=FALSE, stringsAsFactors=FALSE) %>%
+pvi <- fread('Twitter/pviData115.csv', data.table=FALSE, stringsAsFactors=FALSE) %>%
   dplyr::select(-Incumbent) %>%
   dplyr::rename(clinton16=`Clinton %`) %>%
   dplyr::rename(trump16=`Trump %`) %>%
@@ -111,7 +115,7 @@ mcs <- left_join(mcs, pvi, by=c('state_abbrev', 'district'))
 mcs$district_pvi[is.na(mcs$district_pvi) & mcs$chamber=='house' & mcs$congress==115] <- mcs$pvi[is.na(mcs$district_pvi) & mcs$chamber=='house' & mcs$congress==115]
 
 # Load historical PVI (pviH[istorical]) data, merge with mcs
-pviH <- fread('PVI_data_104to114.csv', data.table=FALSE, stringsAsFactors=FALSE) %>%
+pviH <- fread('Twitter/PVI_data_104to114.csv', data.table=FALSE, stringsAsFactors=FALSE) %>%
   dplyr::rename(pviH=pvi) %>%
   filter(congress %in% 110:115) %>%
   mutate(state_abbrev=state.abb[match(state, state.name)]) %>% 
@@ -168,7 +172,7 @@ tw %<>% mutate(memberMajH=ifelse(majH==party, 1, 0)) %>%
 # Unified government dummy
 tw %<>% mutate(unified=ifelse(majH==majS & majH==pres, 1, 0))
 
-# Cut out 110th congress (only 4106 tweets)
+# Cut out 110th congress (only 3697 tweets)
 tw %<>% filter(congress != 110)
 
 # Party center for DW-NOMINATE
@@ -193,7 +197,7 @@ tw %<>% filter(!is.na(pvi))
 ### Add Govtrack ideology scores for 113th-115th
 
 # Load data
-ideol <- fread('~/Dropbox/Projects/Twitter/ideology_master_congress_113_114_115.csv', data.table=FALSE, stringsAsFactors=FALSE)
+ideol <- fread('ideology_master_congress_113_114_115.csv', data.table=FALSE, stringsAsFactors=FALSE)
 
 # Clean
 ideol %<>% 
@@ -246,10 +250,10 @@ mutate(congress=factor(congress)) %>%
 avgEngage <- tw %>%
   group_by(screen_name) %>%
   dplyr::summarise(
-    avgRT=mean(retweets),
-    avgFave=mean(favorites),
-    avgRTCiv=mean(retweets[polarizing==0]),
-    avgFaveCiv=mean(favorites[polarizing==0])
+    avgRT=mean(retweet_count),
+    avgFave=mean(favorite_count),
+    avgRTCiv=mean(retweet_count[uncivil==0]),
+    avgFaveCiv=mean(favorite_count[uncivil==0])
   ) %>% 
   ungroup()
 
@@ -258,10 +262,10 @@ tw <- left_join(tw, avgEngage, by='screen_name')
 
 # Compute difference between the likes/RTs on each tweet and the averages
 tw %<>%
-  mutate(rtDiff = retweets - avgRT) %>%
-  mutate(rtDiffCiv = retweets - avgRTCiv) %>%
-  mutate(faveDiff = favorites - avgFave) %>%
-  mutate(faveDiffCiv = favorites - avgFaveCiv)
+  mutate(rtDiff = retweet_count - avgRT) %>%
+  mutate(rtDiffCiv = retweet_count - avgRTCiv) %>%
+  mutate(faveDiff = favorite_count - avgFave) %>%
+  mutate(faveDiffCiv = favorite_count - avgFaveCiv)
 
 # Load gender data
 gender <- read.csv('~/Dropbox/Projects/Twitter/Twitter/covariateData/trimmedHandles.csv', stringsAsFactors = FALSE) %>%

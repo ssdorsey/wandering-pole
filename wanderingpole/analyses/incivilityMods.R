@@ -39,13 +39,13 @@ tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds')
 ### Run models, save
 
 # Full
-mFull <- speedglm(polarizing ~ memberPresPty + absPVI + house + female + congress + icpsr, data=tw, family=binomial(link='logit'), sparse=FALSE, model=TRUE)
+mFull <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + congress + icpsr, data=tw, family=binomial(link='logit'), sparse=FALSE, model=TRUE)
 # Add ideology (cuts 111th and 112th)
-mIdeol <- speedglm(polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 # Add seniority to full model
-mSeniority <- speedglm(polarizing ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mSeniority <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 # Add seniority to ideology model
-mSeniorityIdeol <- speedglm(polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mSeniorityIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 
 # Save 
 save(mFull, mIdeol, mSeniority, mSeniorityIdeol, file='~/Dropbox/Projects/Twitter/invicilityMods.rds')
@@ -66,8 +66,7 @@ coefBoth <- plot_coefs(mFull, mSeniority,
                        model.names=c('Regular', 'Seniority')) +
   xlab('Coefficient') +
   ggtitle('All Congresses Model') +
-  theme(plot.title = element_text(hjust = 0.5), legend.position='none') +
-  xlim(c(-4,2))
+  theme(plot.title = element_text(hjust = 0.5), legend.position='none')
 
 # Ideology and ideology/seniority together
 coefBothIdeol <- plot_coefs(mIdeol, mSeniorityIdeol, 
@@ -78,11 +77,10 @@ coefBothIdeol <- plot_coefs(mIdeol, mSeniorityIdeol,
                            model.names=c('Ideology', 'Ideology and Seniority')) +
   xlab('Coefficient') +
   ggtitle('Ideology Model (113th-115th)') +
-  theme(plot.title = element_text(hjust = 0.5), legend.position='none') +
-  xlim(-4,2)
+  theme(plot.title = element_text(hjust = 0.5), legend.position='none') 
 
 # Save
-pdf('~/Dropbox/Projects/Twitter/incivilityModsCoefs.pdf', width=10, height=6)
+pdf('~/Dropbox/Projects/Twitter/incivilityModsCoefs_update.pdf', width=10, height=6)
 grid.arrange(coefBoth, coefBothIdeol, nrow=1)
 dev.off()
 
@@ -110,15 +108,17 @@ congDat <- diag(d(congs)) %>%
 names(congDat) <- congs
 names(icpsrDat) <- icpsr
 
-# Add congs to pDat
-c112 <- do.call('rbind', replicate(1366, congDat[1,], simplify=FALSE))
-c113 <- do.call('rbind', replicate(1366, congDat[2,], simplify=FALSE))
-c114 <- do.call('rbind', replicate(1366, congDat[3,], simplify=FALSE))
-c115 <- do.call('rbind', replicate(1366, congDat[4,], simplify=FALSE))
+# Make pDat from icpsr data
+pDat <- do.call("rbind", replicate(8, icpsrDat, simplify = FALSE))
+
+# Create congresses data to add to pDat
+c112 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[1,], simplify=FALSE))
+c113 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[2,], simplify=FALSE))
+c114 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[3,], simplify=FALSE))
+c115 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[4,], simplify=FALSE))
 cDat <- rbind(c112, c113, c114, c115)
 
 # Put together a DF of covariates
-pDat <- do.call("rbind", replicate(8, icpsrDat, simplify = FALSE))
 index <- nrow(pDat)/8
 covs <- data.frame(`(Intercept)`=rep(1, index*2),
                    memberPresPty=c(rep(0, index), rep(1, index)),
@@ -177,27 +177,28 @@ congDatId <- diag(d(congsId)) %>%
 names(congDatId) <- congsId
 names(icpsrDatId) <- icpsrId
 
+# Create data frame to fill in 
+pDatId <- do.call("rbind", replicate(8, icpsrDatId, simplify = FALSE))
+
 # Add congs to pDat
-index <- nrow(icpsrDatId)
-c114Id <- do.call('rbind', replicate((index*2), congDatId[1,], simplify=FALSE))
-c115Id <- do.call('rbind', replicate((index*2), congDatId[2,], simplify=FALSE))
+index <- nrow(pDatId)
+c114Id <- do.call('rbind', replicate(nrow(pDatId)/2, congDatId[1,], simplify=FALSE))
+c115Id <- do.call('rbind', replicate(nrow(pDatId)/2, congDatId[2,], simplify=FALSE))
 cDatId <- rbind(c114Id, c115Id)
 
 # Put together a DF of covariates
-
-covsId <- data.frame(`(Intercept)`=rep(1, index*2),
-                   memberPresPty=rep(1, index*2),
-                   ideolDiffPos=c(rep(ideolVals[1], index), rep(ideolVals[2], index)),
-                   absPVI=rep(median(tw$absPVI), index*2),
-                   house=rep(median(tw$house), index*2),
-                   female=rep(median(tw$female), index*2),
-                   years=rep(median(tw$years, na.rm=TRUE), index*2)
+covsId <- data.frame(`(Intercept)`=rep(1, index/4),
+                   memberPresPty=rep(1, index/4),
+                   ideolDiffPos=c(rep(ideolVals[1], index/8), rep(ideolVals[2], index/8)),
+                   absPVI=rep(median(tw$absPVI), index/4),
+                   house=rep(median(tw$house), index/4),
+                   female=rep(median(tw$female), index/4),
+                   years=rep(median(tw$years, na.rm=TRUE), index/4)
 )
 covsId <- do.call("rbind", replicate(4, covsId, simplify = FALSE))
 names(covsId)[1] <- '(Intercept)'
 
 # Put it all together
-pDatId <- do.call("rbind", replicate(8, icpsrDatId, simplify = FALSE))
 pDatId <- cbind(cDatId, pDatId)
 pDatId <- cbind(covsId, pDatId)
 pDatId <- as.matrix(pDatId)
@@ -237,10 +238,10 @@ uncertId <- abs(coefId['ideolDiffPos', 'Std. Error']/coefId['ideolDiffPos','Esti
 unc <- c(uncertPres, uncertId)
 
 # Plot and save
-barCenters <- barplot(c(effPres, effId), ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects.pdf', width=6, height=6)
+barCenters <- barplot(c(effPres, effId), ylim=c(0, 0.05))
+pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_update.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs, ylim=c(0, 0.15), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
+barplot(effs, ylim=c(0, 0.05), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3, angle=90, code=3, length=0.05)  
