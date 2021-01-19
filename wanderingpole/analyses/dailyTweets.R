@@ -21,9 +21,9 @@ dailyTweets <- tw %>%
   group_by(date, icpsr) %>%
   dplyr::summarise(
     tweets=n(),
-    uncivil=n()[uncivil==1]
+    uncivil=table(uncivil)['1']
   )
 dailyTweets$uncivil[is.na(dailyTweets$uncivil)] <- 0
 
 # Save
-write.csv(dailyTweets, 'dailyTweets.csv', row.names=FALSE)
+write.csv(dailyTweets, 'Twitter/dailyTweets.csv', row.names=FALSE)

@@ -51,6 +51,18 @@ mSeniorityIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + ho
 save(mFull, mIdeol, mSeniority, mSeniorityIdeol, file='~/Dropbox/Projects/Twitter/invicilityMods.rds')
 # load('~/Dropbox/Projects/Twitter/invicilityMods.rds')
 
+vardf <- dplyr::select(tw, c(uncivil, memberPresPty, ideolDiffPos, absPVI, house, female, congress, icpsr))
+
+# Distribution of number of tweets and proportion of uncivil tweets by member
+twd <- tw %>%
+  filter(!is.na(uncivil)) %>%
+  group_by(icpsr, congress) %>%
+  dplyr::summarise(
+    n=n(),
+    uncivil=table(uncivil)['1'],
+    prop=uncivil/n
+  )
+  
 
 
 #############################################################################################################################################################################################################
@@ -83,6 +95,11 @@ coefBothIdeol <- plot_coefs(mIdeol, mSeniorityIdeol,
 pdf('~/Dropbox/Projects/Twitter/incivilityModsCoefs_update.pdf', width=10, height=6)
 grid.arrange(coefBoth, coefBothIdeol, nrow=1)
 dev.off()
+
+
+### Regression tables
+stargazer(mFull, keep=c('(Intercept)', 'memberPresPty', 'absPVI', 'house', 'female', 'congress112', 'congress113', 'congress114', 'congress115'))
+
 
 
 ### Predicted probabilities to show effect of president's party
@@ -251,7 +268,7 @@ dev.off()
 par(mar=c(5.1, 4.1, 4.1, 2.1))
 
 
-### Effect sizes as a distribution of member incivility
+### Effect sizes relative to the distribution of member incivility
 
 ucd <- tw %>%
   group_by(icpsr, congress) %>%
