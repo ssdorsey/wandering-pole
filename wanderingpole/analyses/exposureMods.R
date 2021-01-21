@@ -29,16 +29,25 @@ tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds')
 ### Models predicting exposure
 
 # Run models, save (takes about 40min per model)
-mRT <- speedlm(rtDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
-saveRDS(mRT, file='~/Dropbox/Projects/Twitter/rtMod.RData'); rm(mRT); gc()
-mFave <- speedlm(faveDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
-saveRDS(mFave, file='~/Dropbox/Projects/Twitter/faveMod.RData'); rm(mFave); gc()
+mRT <- lm(rtDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
+saveRDS(mRT, file='~/Dropbox/Projects/Twitter/rtMod_update.RData'); rm(mRT); gc()
+mFave <- lm(faveDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
+saveRDS(mFave, file='~/Dropbox/Projects/Twitter/faveMod_update.RData'); rm(mFave); gc()
 #mRTCiv <- speedlm(rtDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
 #saveRDS(mRTCiv, file='~/Dropbox/Projects/Twitter/rtCivMod.RData'); rm(mRTCiv); gc()
 #mFaveCiv <- speedlm(faveDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
 #saveRDS(mFaveCiv, file='~/Dropbox/Projects/Twitter/faveCivMod.RData'); rm(mFaveCiv); gc()
 mRT <- readRDS('~/Dropbox/Projects/Twitter/rtMod.RData')
 mFave <- readRDS('~/Dropbox/Projects/Twitter/faveMod.RData')
+
+# Regression table
+stargazer(mFave, mRT, font.size='small', label='exposureTab', colnames=FALSE,
+          keep=c('uncivil', 'memberPresPty', 'absPVI', 'house', 'female', 'ideolDiffPos', 'years', 
+                 'congress114', 'congress115'),
+          covariate.labels=c('Uncivil', "President's Party", 'Ideological Extremity', '|PVI|', 'House', 'Female', 'Seniority',
+                             '114th Congress', '115th Congress'),
+          keep.stat=c('n', 'adj.rsq'), dep.var.labels = c('Difference from Average Likes', 'Difference from Average Retweets'),
+          title="OLS models predicting the number of likes (column 1) and retweets (column 2) relative to the average tweet for each member.")
 
 
 
