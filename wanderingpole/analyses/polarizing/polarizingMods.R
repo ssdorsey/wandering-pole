@@ -23,7 +23,7 @@ library(gridExtra)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
 
 # Load data with covariates merged
-tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds') 
+tw <- readRDS('~/Dropbox/Projects/Twitter/modelData_polarizing.rds') 
 
 
 
@@ -40,7 +40,7 @@ twm <- tw %>%
   group_by(icpsr, congress) %>%
   dplyr::summarise(
     n=n(),
-    uncivil=table(uncivil)['1'],
+    polarizing=table(polarizing)['1'],
     memberPresPty=unique(memberPresPty),
     absPVI=unique(absPVI),
     house=unique(house),
@@ -48,16 +48,16 @@ twm <- tw %>%
     years=unique(years),
     ideolDiffPos=unique(ideolDiffPos)
   )
-twm$uncivil[is.na(twm$uncivil)] <- 0
-twm %<>% mutate(pct_uncivil=uncivil/n)
+twm$polarizing[is.na(twm$polarizing)] <- 0
+twm %<>% mutate(pct_polarizing=polarizing/n)
 
 # Run models
-mFullMem <- lm(pct_uncivil ~ memberPresPty + absPVI + house + female + congress + icpsr, data=twm)
-mIdMem <- lm(pct_uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=twm)
-mSenMem <- lm(pct_uncivil ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=twm)
-mSenIdMem <- lm(pct_uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=twm)
-mSenMemNFE <- lm(pct_uncivil ~ memberPresPty + absPVI + house + female + years + congress, data=twm)
-mSenIdMemNFE <- lm(pct_uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress, data=twm)
+mFullMem <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + congress + icpsr, data=twm)
+mIdMem <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=twm)
+mSenMem <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=twm)
+mSenIdMem <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=twm)
+mSenMemNFE <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress, data=twm)
+mSenIdMemNFE <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress, data=twm)
 
 
 
@@ -67,8 +67,8 @@ stargazer(mFullMem, mIdMem, mSenMem, mSenIdMem, mSenMemNFE, mSenIdMemNFE, font.s
                  'congress112', 'congress113', 'congress114', 'congress115'),
           covariate.labels=c("President's Party", 'Ideological Extremity', '|PVI|', 'House', 'Female', 'Seniority',
                              '112th Congress', '113th Congress', '114th Congress', '115th Congress'),
-          keep.stat=c('n', 'adj.rsq'), dep.var.labels = 'Dependent Variable: Proportion Uncivil', dep.var.caption='',
-          title="OLS models predicting the proportion of members' tweets that were uncivil.")
+          keep.stat=c('n', 'adj.rsq'), dep.var.labels = 'Dependent Variable: Proportion Polarizing', dep.var.caption='',
+          title="OLS models predicting the proportion of members' tweets that were polarizing.")
 
 
 #############################################################################################################################################################################################################
@@ -100,10 +100,10 @@ effs <- sapply(list(mSenMem, mSenIdMem), function(x){
   abs()
 
 # Plot and save
-barCenters <- barplot(effs[,1], ylim=c(0, 0.1))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_update.pdf', width=6, height=6)
+barCenters <- barplot(effs[,1], ylim=c(0, 0.4))
+pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_polarizing.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 0.1), ylab='Change in Proportion Uncivil', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
+barplot(effs[,1], ylim=c(0, 0.4), ylab='Change in Proportion Polarizing', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
@@ -113,7 +113,7 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 # Effect sizes in terms of the SD of the distribution
-effs[,'coef']/sd(twm$pct_uncivil)
+effs[,'coef']/sd(twm$pct_polarizing)
 
 
 
