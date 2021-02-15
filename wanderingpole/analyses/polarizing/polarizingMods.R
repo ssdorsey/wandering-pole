@@ -25,6 +25,10 @@ setwd('~/Dropbox/Projects/Twitter/Twitter')
 # Load data with covariates merged
 tw <- readRDS('~/Dropbox/Projects/Twitter/modelData_polarizing.rds') 
 
+# Ideology measure from DW-NOMINATE
+tw$ideolDiffPosDW <- tw$dwDist
+tw$ideolDiffPosDW[tw$party=='D'] <- (-1)*tw$ideolDiffPosDW[tw$party=='D']
+
 
 
 #######################################################################################################################################################################
@@ -46,7 +50,8 @@ twm <- tw %>%
     house=unique(house),
     female=unique(female),
     years=unique(years),
-    ideolDiffPos=unique(ideolDiffPos)
+    ideolDiffPos=unique(ideolDiffPos),
+    ideolDiffPosDW=unique(ideolDiffPosDW)
   )
 twm$polarizing[is.na(twm$polarizing)] <- 0
 twm %<>% mutate(pct_polarizing=polarizing/n)
@@ -58,17 +63,22 @@ mSenMem <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years +
 mSenIdMem <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=twm)
 mSenMemNFE <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress, data=twm)
 mSenIdMemNFE <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress, data=twm)
+mDW <- lm(pct_polarizing ~ memberPresPty + ideolDiffPosDW + absPVI + house + female + years + congress + icpsr, data=twm)
+mDWNFE <- lm(pct_polarizing ~ memberPresPty + ideolDiffPosDW + absPVI + house + female + years + congress, data=twm) 
+mNoTrump <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=filter(twm, congress!=115))
 
 
 
 ### Regression tables
-stargazer(mFullMem, mIdMem, mSenMem, mSenIdMem, mSenMemNFE, mSenIdMemNFE, font.size='small', label='incivTab', 
-          keep=c('memberPresPty', 'absPVI', 'house', 'female', 'ideolDiffPos', 'years', 
+stargazer(mFullMem, mIdMem, mSenMem, mSenIdMem, mSenMemNFE, mSenIdMemNFE, mDWNFE, mNoTrump, font.size='tiny', label='polarTab', 
+          keep=c('memberPresPty', 'absPVI', 'house', 'female', 'ideolDiffPos', 'ideolDiffPosDW', 'years', 
                  'congress112', 'congress113', 'congress114', 'congress115'),
-          covariate.labels=c("President's Party", 'Ideological Extremity', '|PVI|', 'House', 'Female', 'Seniority',
+          covariate.labels=c("President's Party", 'Ideological Extremity', 'Ideological Extremity (DW-NOMINATE)', 
+                             '|PVI|', 'House', 'Female', 'Seniority',
                              '112th Congress', '113th Congress', '114th Congress', '115th Congress'),
           keep.stat=c('n', 'adj.rsq'), dep.var.labels = 'Dependent Variable: Proportion Polarizing', dep.var.caption='',
-          title="OLS models predicting the proportion of members' tweets that were polarizing.")
+          title="OLS models predicting the proportion of members' tweets that were polarizing.",
+          column.sep.width = '2pt')
 
 
 #############################################################################################################################################################################################################
@@ -117,195 +127,5 @@ effs[,'coef']/sd(twm$pct_polarizing)
 
 
 
-################################################################################################################################################################################################
-### Models at the tweet level for appendix
-
-### Run models, save
-
-# Full
-mFull <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + congress + icpsr, data=tw, family=binomial(link='logit'), sparse=FALSE, model=TRUE)
-# Add ideology (cuts 111th and 112th)
-mIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
-# Add seniority to full model
-mSeniority <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + years + congress, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
-# Add seniority to ideology model
-mSeniorityIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
-
-# Save 
-save(mFull, mIdeol, mSeniority, mSeniorityIdeol, file='~/Dropbox/Projects/Twitter/invicilityMods.rds')
-# load('~/Dropbox/Projects/Twitter/invicilityMods.rds')
-
-
-### Predicted probabilities to show effect of president's party
-
-# Need data that has 
-# 1) two points for the IV of interest (pres party/not and 2 SD change in ideology)
-# 2) values for all covariates for each of the two points
-
-# Pull names of coefficients
-coefs <- names(mSenMem$coefficients) 
-
-# Pull names of factor IVs
-icpsr <- coefs[str_detect(coefs, 'icpsr')]
-congs <- coefs[str_detect(coefs, 'congress')]
-
-# Make identity matrices for factor IVs
-icpsrDat <- diag(d(icpsr)) %>%
-  as.data.frame()
-congDat <- diag(d(congs)) %>%
-  as.data.frame()
-
-# Assign column names for factor DFs
-names(congDat) <- congs
-names(icpsrDat) <- icpsr
-
-# Make pDat from icpsr data
-pDat <- do.call("rbind", replicate(8, icpsrDat, simplify = FALSE))
-
-# Create congresses data to add to pDat
-c112 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[1,], simplify=FALSE))
-c113 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[2,], simplify=FALSE))
-c114 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[3,], simplify=FALSE))
-c115 <- do.call('rbind', replicate(nrow(pDat)/4, congDat[4,], simplify=FALSE))
-cDat <- rbind(c112, c113, c114, c115)
-
-# Put together a DF of covariates
-index <- nrow(pDat)/8
-covs <- data.frame(`(Intercept)`=rep(1, index*2),
-                   memberPresPty=c(rep(0, index), rep(1, index)),
-                   absPVI=rep(median(tw$absPVI), index*2),
-                   house=rep(median(tw$house), index*2),
-                   female=rep(median(tw$female), index*2),
-                   years=rep(median(tw$years, na.rm=TRUE), index*2)
-)
-covs <- do.call("rbind", replicate(4, covs, simplify = FALSE))
-
-# Put it all together
-pDat <- cbind(cDat, pDat)
-pDat <- cbind(covs, pDat)
-pDat <- as.matrix(pDat)
-colnames(pDat)[1] <- '(Intercept)'
-
-# Pull model coefficients (removing NAs)
-modCoefs <- mSenMem$coefficients
-modCoefs[is.na(modCoefs)] <- 0
-
-# Do prediction
-preds <- pDat %*% modCoefs
-
-# Apply link function
-pDat <- as.data.frame(pDat) %>%
-  mutate(pred = 1/(1+exp(-preds)))
-
-# Effect size for president's party
-effSize <- pDat %>%
-  group_by(memberPresPty) %>%
-  dplyr::summarise(avg=mean(pred)) 
-effSize
-diff(effSize$avg)
-
-
-### Predicted probabilities to show effect of ideological extremity
-
-# Pull values to compare (1 SD below mean, 1 SD above mean)
-ideolVals <- c(mean(tw$ideolDiffPos, na.rm=TRUE)-sd(tw$ideolDiffPos, na.rm=TRUE),
-               mean(tw$ideolDiffPos, na.rm=TRUE)+sd(tw$ideolDiffPos, na.rm=TRUE))
-
-# Pull names of coefficients
-coefsId <- names(mSenIdMem$coefficients) 
-
-# Pull names of factor IVs
-icpsrId <- coefsId[str_detect(coefsId, 'icpsr')]
-congsId <- coefsId[str_detect(coefsId, 'congress')]
-
-# Make identity matrices for factor IVs
-icpsrDatId <- diag(d(icpsrId)) %>%
-  as.data.frame()
-congDatId <- diag(d(congsId)) %>%
-  as.data.frame()
-
-# Assign column names for factor DFs
-names(congDatId) <- congsId
-names(icpsrDatId) <- icpsrId
-
-# Create data frame to fill in 
-pDatId <- do.call("rbind", replicate(8, icpsrDatId, simplify = FALSE))
-
-# Add congs to pDat
-index <- nrow(pDatId)
-c114Id <- do.call('rbind', replicate(nrow(pDatId)/2, congDatId[1,], simplify=FALSE))
-c115Id <- do.call('rbind', replicate(nrow(pDatId)/2, congDatId[2,], simplify=FALSE))
-cDatId <- rbind(c114Id, c115Id)
-
-# Put together a DF of covariates
-covsId <- data.frame(`(Intercept)`=rep(1, index/4),
-                     memberPresPty=rep(1, index/4),
-                     ideolDiffPos=c(rep(ideolVals[1], index/8), rep(ideolVals[2], index/8)),
-                     absPVI=rep(median(tw$absPVI), index/4),
-                     house=rep(median(tw$house), index/4),
-                     female=rep(median(tw$female), index/4),
-                     years=rep(median(tw$years, na.rm=TRUE), index/4)
-)
-covsId <- do.call("rbind", replicate(4, covsId, simplify = FALSE))
-names(covsId)[1] <- '(Intercept)'
-
-# Put it all together
-pDatId <- cbind(cDatId, pDatId)
-pDatId <- cbind(covsId, pDatId)
-pDatId <- as.matrix(pDatId)
-pDatId <- pDatId[,!is.na(mSenIdMem$coefficients)]
-
-# Pull model coefficients (removing NAs)
-modCoefsId <- mSenIdMem$coefficients[!is.na(mSenIdMem$coefficients)]
-modCoefsId <- modCoefsId[names(modCoefsId) %in% intersect(colnames(pDatId), names(modCoefsId))]
-
-# Do prediction
-predsId <- pDatId %*% modCoefsId
-
-# Effect size for president's party
-effSizeId <- pDatId %>%
-  group_by(ideolDiffPos) %>%
-  dplyr::summarise(avg=mean(pred)) 
-effSizeId
-diff(effSizeId$avg)
-
-
-### Plot effect sizes
-
-# Effect sizes
-effPres <- abs(diff(effSize$avg))
-effId <- abs(diff(effSizeId$avg))
-effs <- c(effPres, effId)
-
-# Uncertainty estimates
-coefPres <- summary(mSeniority)$coefficients
-uncertPres <- abs(coefPres['memberPresPty', 'Std. Error']/coefPres['memberPresPty','Estimate'])*effPres*1.96*2
-coefId <- summary(mSeniorityIdeol)$coefficients
-uncertId <- abs(coefId['ideolDiffPos', 'Std. Error']/coefId['ideolDiffPos','Estimate'])*effId*1.96*2
-unc <- c(uncertPres, uncertId)
-
-# Plot and save
-barCenters <- barplot(c(effPres, effId), ylim=c(0, 0.05))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_update.pdf', width=6, height=6)
-par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs, ylim=c(0, 0.05), ylab='Change in Predicted Probability of Political Incivility', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
-for(ii in 1:2){
-  segments(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3)
-  arrows(x0=barCenters[ii], y0=effs[ii]-unc[ii], y1=effs[ii]+unc[ii], lwd=3, angle=90, code=3, length=0.05)  
-  text(x=barCenters[ii], y=effs[ii]/2, paste0(round(effs[ii], 3), ' +/- ', round(unc[ii], 3)))
-}
-dev.off()
-par(mar=c(5.1, 4.1, 4.1, 2.1))
-
-
-### Effect sizes relative to the distribution of member incivility
-
-ucd <- tw %>%
-  group_by(icpsr, congress) %>%
-  dplyr::summarise(
-    avg=prop.table(table(uncivil))['1']
-  )
-ucd$avg[is.na(ucd$avg)] <- 0
-
-effPres/sd(ucd$avg)
-effId/sd(ucd$avg)
+#############################################################################################################################################################################################################
+### Cut out ideological extremity
