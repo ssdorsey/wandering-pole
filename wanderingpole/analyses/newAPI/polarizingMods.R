@@ -23,7 +23,7 @@ library(gridExtra)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
 
 # Load data with covariates merged
-tw <- readRDS('~/Dropbox/Projects/Twitter/modelData_polarizing_newAPI.rds') 
+tw <- readRDS('~/Dropbox/Projects/Twitter/modelData_polarizing.rds') 
 
 # Ideology measure from DW-NOMINATE
 tw$ideolDiffPosDW <- tw$dwDist
@@ -65,7 +65,7 @@ mSenMemNFE <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + year
 mSenIdMemNFE <- lm(pct_polarizing ~ memberPresPty + ideolDiffPos + absPVI + house + female + years + congress, data=twm)
 mDW <- lm(pct_polarizing ~ memberPresPty + ideolDiffPosDW + absPVI + house + female + years + congress + icpsr, data=twm)
 mDWNFE <- lm(pct_polarizing ~ memberPresPty + ideolDiffPosDW + absPVI + house + female + years + congress, data=twm) 
-mNoTrump <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress + icpsr, data=filter(twm, congress!=115))
+mNoTrump <- lm(pct_polarizing ~ memberPresPty + absPVI + house + female + years + congress, data=filter(twm, congress!=115))
 
 
 
@@ -78,7 +78,7 @@ stargazer(mFullMem, mIdMem, mSenMem, mSenIdMem, mSenMemNFE, mSenIdMemNFE, mDWNFE
                              '112th Congress', '113th Congress', '114th Congress', '115th Congress'),
           keep.stat=c('n', 'adj.rsq'), dep.var.labels = 'Dependent Variable: Proportion Polarizing', dep.var.caption='',
           title="OLS models predicting the proportion of members' tweets that were polarizing.",
-          column.sep.width = '2pt')
+          column.sep.width = '0pt')
 
 
 #############################################################################################################################################################################################################
@@ -124,8 +124,3 @@ dev.off()
 
 # Effect sizes in terms of the SD of the distribution
 effs[,'coef']/sd(twm$pct_polarizing)
-
-
-
-#############################################################################################################################################################################################################
-### Cut out ideological extremity
