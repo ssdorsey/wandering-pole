@@ -10,7 +10,7 @@ library(Hmisc)
 
 #import follower data
 
-followers <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Followers Remerge Files/congressional_twitter_follower_changes.csv")
+followers <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Followers Remerge Files/congressional_twitter_follower_changes.csv")
 
 followers$year <- format(as.Date(followers$date, format="%m/%d/%Y"),"%Y")
 
@@ -18,7 +18,7 @@ followers$week <- lubridate::week(mdy(followers$date))
 
 #import twitter handle data
 
-Twitter <- read.csv("C:/Users/User/Dropbox/Twitter/master_handles w FEC and Official Tag.csv")
+Twitter <- read.csv("~/Dropbox/Projects/Twitter/Twitter/master_handles w FEC and Official Tag.csv")
 twittercodes <- dplyr::select(Twitter, twitter, icpsr)
 
 #make handles lower to ensure match
@@ -59,27 +59,21 @@ followersgroup$followerchange_pct <- ((followersgroup$followerchange / followers
 
 followersgroup$icpsryearweek <- paste0(as.character(followersgroup$icpsr),"M", as.character(followersgroup$year), "-", as.character(followersgroup$week))
 
-#import tweets (weekly grouped tweets created from donor analysis for quicker loading (can also load all tweets and repeat weekly grouping proceedure))
-
-tweets <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Donors Remerge Files/tweetsweek.csv")
+#import tweets (weekly grouped tweets created from donor analysis for quicker loading (can also load all tweets and repeat weekly grouping procedure))
+tweets <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Donors Remerge Files/tweetsweek.csv")
 
 #merge tweets and followers
 
-followerstweetsmerge <- merge(followersgroup, tweets, by = "icpsryearweek")
-followerstweetsjoin <- left_join(followersgroup, tweets, by = "icpsryearweek")
+followerstweetsjoin <- left_join(dplyr::select(followersgroup, -icpsr), tweets, by = "icpsryearweek")
 
 #delete rows for missing data
-
-followerstweetsmerge <- filter(followerstweets, yearweek != "2016-18")
-followerstweetsmerge <- filter(followerstweets, yearweek != "2017-13")
 
 followerstweetsjoin <- filter(followerstweetsjoin, yearweek != "2016-18")
 followerstweetsjoin <- filter(followerstweetsjoin, yearweek != "2017-13")
 
 #write final file
 
-write.csv(followerstweetsmerge, file = "followerstweetsmerge.csv")
-write.csv(followerstweetsjoin, file = "followerstweetsjoin.csv")
+write.csv(followerstweetsjoin, file = "~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Donors Remerge Files/followerstweetsjoin.csv")
 
 
 

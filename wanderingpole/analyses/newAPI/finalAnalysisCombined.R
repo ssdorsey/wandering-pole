@@ -193,25 +193,25 @@ dev.off()
 
 #### Follower Analysis
 
-tweets <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Final Analysis/Followers analysis/divisivefollowers.csv")
+tweets <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Donors Remerge Files/followerstweetsjoin.csv")
 
-tweets <- filter(tweets, follower_change > -10000)
-tweets <- filter(tweets, icpsr != "NA")
-tweets$follower_change_pct <- (tweets$follower_change/tweets$followers)*100
-tweets <- filter(tweets, follower_change_pct > -20)
-tweets <- filter(tweets, follower_change_pct < 50)
+tweets <- filter(tweets, followerchange > -10000) %>%
+  filter(followerchange_pct != Inf)
+tweets <- filter(tweets, followerchange_pct > -20)
+tweets <- filter(tweets, followerchange_pct < 50)
+tweets %<>% mutate(polarizing_sq = polarizing * pct.polarizing)
 
-summary(weeklyfollowersuncivil <- felm(follower_change ~ divisive | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerstweets <- felm(follower_change ~ tweets.y | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerspct <- felm(follower_change ~ divisivepp | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerssq <- felm(follower_change ~ divisive_sq | icpsr + weekyear, data=tweets) )
+summary(weeklyfollowersuncivil <- felm(followerchange ~ polarizing | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerstweets <- felm(followerchange ~ tweets | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerspct <- felm(followerchange ~ pct.polarizing | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerssq <- felm(followerchange ~ polarizing_sq | icpsr + yearweek, data=tweets) )
 
 tab_model(weeklyfollowersuncivil, weeklyfollowerstweets, weeklyfollowerspct, weeklyfollowerssq)
 
-summary(weeklyfollowersuncivil2 <- felm(follower_change_pct ~ divisive | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerstweets2 <- felm(follower_change_pct ~ tweets.y | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerspct2 <- felm(follower_change_pct ~ divisivepp | icpsr + weekyear, data=tweets) )
-summary(weeklyfollowerssq2 <- felm(follower_change_pct ~ divisive_sq | icpsr + weekyear, data=tweets) )
+summary(weeklyfollowersuncivil2 <- felm(followerchange_pct ~ polarizing | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerstweets2 <- felm(followerchange_pct ~ tweets | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerspct2 <- felm(followerchange_pct ~ pct.polarizing | icpsr + yearweek, data=tweets) )
+summary(weeklyfollowerssq2 <- felm(followerchange_pct ~ polarizing_sq | icpsr + yearweek, data=tweets) )
 
 tab_model(weeklyfollowersuncivil2, weeklyfollowerstweets2, weeklyfollowerspct2, weeklyfollowerssq2)
 
