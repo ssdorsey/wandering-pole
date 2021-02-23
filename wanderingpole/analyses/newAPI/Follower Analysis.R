@@ -27,6 +27,7 @@ summary(weeklyfollowerssq <- felm(followerchange ~ polarizing_sq | icpsr + yearw
 
 tab_model(weeklyfollowerspol, weeklyfollowerstweets, weeklyfollowerspct, weeklyfollowerssq)
 
+
 #fixed-effects models percent change in followers
 
 summary(weeklyfollowerspol2 <- felm(followerchange_pct ~ polarizing | icpsr + yearweek, data=tweets) )
@@ -35,6 +36,9 @@ summary(weeklyfollowerspct2 <- felm(followerchange_pct ~ pct.polarizing | icpsr 
 summary(weeklyfollowerssq2 <- felm(followerchange_pct ~ polarizing_sq | icpsr + yearweek, data=tweets) )
 
 tab_model(weeklyfollowerspol2, weeklyfollowerstweets2, weeklyfollowerspct2, weeklyfollowerssq2)
+
+stargazer(weeklyfollowerspol, weeklyfollowerstweets, weeklyfollowerspct, weeklyfollowerssq, 
+          weeklyfollowerspol2, weeklyfollowerstweets2, weeklyfollowerspct2, weeklyfollowerssq2)
 
 #extract coefficients and standard errors
 
