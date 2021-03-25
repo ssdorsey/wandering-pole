@@ -295,6 +295,50 @@ for(ii in 1:nrow(yearweeks)){
 }
 
 
+# Add zeros for donations by week/month
+for(ii in 1:nrow(yearmonths)){
+  # Designate month
+  month <- yearmonths$yearmonth[ii]
+  # Pull members from that month
+  mems <- filter(monthIDs, yearmonth==month)
+  # Pull tweets for that month
+  donates <- filter(donationsmonth, yearmonth==month)
+  # See if any members who didn't tweet this month
+  missing <- mems$icpsr[!mems$icpsr %in% intersect(mems$icpsr, donates$icpsr)]
+  # Create dataframe of values for those members, if any
+  if(length(missing) > 0){
+    to_add <- data.frame(
+      icpsr=missing,
+      yearmonth=month,
+      monthamount=0,
+      monthdonors=0
+    ) 
+    donationsmonth <- rbind(donationsmonth, to_add)
+  }
+}
+for(ii in 1:nrow(yearweeks)){
+  # Designate month
+  week <- yearweeks$yearweek[ii]
+  # Pull members from that month
+  mems <- filter(weekIDs, yearweek==week)
+  # Pull tweets for that month
+  donates <- filter(donationsweek, yearweek==week)
+  # See if any members who didn't tweet this month
+  missing <- mems$icpsr[!mems$icpsr %in% intersect(mems$icpsr, donates$icpsr)]
+  # Create dataframe of values for those members, if any
+  if(length(missing) > 0){
+    to_add <- data.frame(
+      icpsr=missing,
+      yearweek=week,
+      yearmonth=unique(donates$yearmonth)[1],
+      weekamount=0,
+      weekdonors=0
+    ) 
+    donationsweek <- rbind(donationsweek, to_add)
+  }
+}
+
+
 #make percentages
 
 tweetsmonth$pct.polarizing <- ((tweetsmonth$polarizing/tweetsmonth$tweets) *100)
@@ -320,8 +364,10 @@ write.csv(tweetsweek, 'tweetsweek.csv', row.names=FALSE)
 dandtmonth <- left_join(donationsmonth, tweetsmonth, by = "icpsryearmonth")
 dandtweek <- left_join(donationsweek, tweetsweek, by = "icpsryearweek")
 
-dandtmonth <- merge(tweetsmonth, donationsmonth, by = "icpsryearmonth")
-dandtweek <- merge(tweetsweek, donationsweek, by = "icpsryearweek")
+write.csv(dandtmonth, 'tweets_donations_month.csv', row.names=FALSE)
+write.csv(dandtweek, 'tweets_donations_week.csv', row.names=FALSE)
+
+
 
 ######
 ######
