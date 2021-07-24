@@ -12,11 +12,11 @@ library(coefplot)
 setwd('~/Dropbox/Projects/Twitter')
 
 # Load classified tweets
-tw <- fread('tweets.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
+tw <- fread('~/Dropbox/Projects/Twitter/wandering-pole/wanderingpole/data/tweets_Jul2021.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
 tw %<>% 
-  dplyr::rename(screen_name=user.screen_name) %>%
+  dplyr::rename(screen_name=author_username) %>%
   mutate(screen_name=tolower(screen_name)) %>%
-  filter(screen_name!='')
+  filter(!screen_name %in% c('', 'barackobama')) # Lots of Obama tweets for some reason
 
 # Load master list of handles to merge with member data
 hand <- fread('Twitter/master_handles.csv', data.table = FALSE, stringsAsFactors = FALSE) %>%
@@ -31,11 +31,8 @@ unTW <- unique(tw$screen_name) %>% sort()
 identical(unTW, sort(intersect(unHand, unTW)))
 
 # Merge by handle
-tw <- tw %>%
-  dplyr::select(-c(chamber, party)) %>%
-  left_join(., hand, by='screen_name') %>%
-  dplyr::rename(icpsr=icpsr.y) %>%
-  dplyr::select(-icpsr.x)
+tw %<>%
+  left_join(., hand, by='screen_name') 
 
 # Load data on members to merge in
 mcs <- readRDS('Twitter/Data/mergedMemberERData.rds')
@@ -87,7 +84,9 @@ dupes <- dupes %>%
   # For LA Senate (Bill Cassidy) use 536,191 for repvotes
   filter(!(state_abbrev=='LA' & year=='2016' & district==0 & icpsr==20919 & repvotes=='482,591')) %>% 
   # For LA Senate (John Kennedy) use 536,191 for repvotes
-  filter(!(state_abbrev=='LA' & year=='2016' & district==0 & icpsr==41703 & repvotes=='482,591')) 
+  filter(!(state_abbrev=='LA' & year=='2016' & district==0 & icpsr==41703 & repvotes=='482,591')) %>%
+  # Some have NAs for PVI
+  filter(!(is.na(district_pvi) & !bioname=='JOHNSON, Mike'))
 
 mcs <- rbind(mcs, dupes)
 
@@ -149,7 +148,7 @@ mcs %<>% mutate(state=state.name[match(state_abbrev, state.abb)])
 tw <- mcs %>%
   dplyr::rename(elect_year=year) %>%
   dplyr::select(-c(state, chamber, district)) %>%
-  left_join(tw, ., by=c('icpsr', 'congress')) # Adds 11477 rows because of members in both chambers in the same congress
+  left_join(tw, ., by=c('icpsr', 'congress')) # Adds a few thousand rows because of members in both chambers in the same congress
 
 # Fix party variable
 tw %<>% mutate(party=car::recode(party, "'I'='D'; ''=NA"))
@@ -172,7 +171,7 @@ tw %<>% mutate(memberMajH=ifelse(majH==party, 1, 0)) %>%
 # Unified government dummy
 tw %<>% mutate(unified=ifelse(majH==majS & majH==pres, 1, 0))
 
-# Cut out 110th congress (only 3697 tweets)
+# Cut out 110th congress (only a couple thousand tweets)
 tw %<>% filter(congress != 110)
 
 # Party center for DW-NOMINATE
@@ -245,15 +244,14 @@ mutate(congress=factor(congress)) %>%
   dplyr::select(-house) %>%
   dplyr::rename(house=chamber)
 
-
 # Average number of likes and retweets per member (on all tweets and on "civil" tweets)
 avgEngage <- tw %>%
   group_by(screen_name) %>%
   dplyr::summarise(
-    avgRT=mean(retweet_count),
-    avgFave=mean(favorite_count),
-    avgRTCiv=mean(retweet_count[uncivil==0]),
-    avgFaveCiv=mean(favorite_count[uncivil==0])
+    avgRT=mean(public_metrics.retweet_count),
+    avgFave=mean(public_metrics.like_count),
+    avgRTCiv=mean(public_metrics.retweet_count[uncivil==0]),
+    avgFaveCiv=mean(public_metrics.like_count[uncivil==0])
   ) %>% 
   ungroup()
 
@@ -262,10 +260,10 @@ tw <- left_join(tw, avgEngage, by='screen_name')
 
 # Compute difference between the likes/RTs on each tweet and the averages
 tw %<>%
-  mutate(rtDiff = retweet_count - avgRT) %>%
-  mutate(rtDiffCiv = retweet_count - avgRTCiv) %>%
-  mutate(faveDiff = favorite_count - avgFave) %>%
-  mutate(faveDiffCiv = favorite_count - avgFaveCiv)
+  mutate(rtDiff = public_metrics.retweet_count - avgRT) %>%
+  mutate(rtDiffCiv = public_metrics.retweet_count - avgRTCiv) %>%
+  mutate(faveDiff = public_metrics.like_count - avgFave) %>%
+  mutate(faveDiffCiv = public_metrics.like_count - avgFaveCiv)
 
 # Load gender data
 gender <- read.csv('~/Dropbox/Projects/Twitter/Twitter/covariateData/trimmedHandles.csv', stringsAsFactors = FALSE) %>%
@@ -307,4 +305,4 @@ seniority %<>%
 tw <- left_join(tw, seniority, by=c('icpsr', 'congress', 'house'))
 
 # Save
-saveRDS(tw, '~/Dropbox/Projects/Twitter/modelData.rds')
+saveRDS(tw, '~/Dropbox/Projects/Twitter/incivility_modelData.rds')

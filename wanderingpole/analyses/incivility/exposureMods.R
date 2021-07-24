@@ -21,7 +21,7 @@ library(gridExtra)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
 
 # Load data with covariates merged
-tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds')
+tw <- readRDS('~/Dropbox/Projects/Twitter/incivility_modelData.rds')
 
 
 
@@ -29,16 +29,16 @@ tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds')
 ### Models predicting exposure
 
 # Run models, save (takes about 40min per model)
-mRT <- lm(rtDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
-saveRDS(mRT, file='~/Dropbox/Projects/Twitter/rtMod_update.RData'); rm(mRT); gc()
-mFave <- lm(faveDiff ~ uncivil + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
-saveRDS(mFave, file='~/Dropbox/Projects/Twitter/faveMod_update.RData'); rm(mFave); gc()
+mRT <- lm(rtDiff ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
+saveRDS(mRT, file='~/Dropbox/Projects/Twitter/rtMod_uncivil.RData'); rm(mRT); gc()
+mFave <- lm(faveDiff ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
+saveRDS(mFave, file='~/Dropbox/Projects/Twitter/faveMod_uncivil.RData'); rm(mFave); gc()
 #mRTCiv <- speedlm(rtDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
 #saveRDS(mRTCiv, file='~/Dropbox/Projects/Twitter/rtCivMod.RData'); rm(mRTCiv); gc()
 #mFaveCiv <- speedlm(faveDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
 #saveRDS(mFaveCiv, file='~/Dropbox/Projects/Twitter/faveCivMod.RData'); rm(mFaveCiv); gc()
-mRT <- readRDS('~/Dropbox/Projects/Twitter/rtMod.RData')
-mFave <- readRDS('~/Dropbox/Projects/Twitter/faveMod.RData')
+mRT <- readRDS('~/Dropbox/Projects/Twitter/rtMod_uncivil.RData')
+mFave <- readRDS('~/Dropbox/Projects/Twitter/faveMod_uncivil.RData')
 
 # Regression table
 stargazer(mFave, mRT, font.size='small', label='exposureTab', colnames=FALSE,
@@ -112,9 +112,9 @@ stargazer(mFave, mRT, font.size='small', label='exposureTab', colnames=FALSE,
 effPlotDat <- function(model){
   # Pull coefficient
   coefs <- summary(model)$coefficients
-  coef <- coefs['uncivil','coef']
+  coef <- coefs['uncivil2','Estimate']
   # Pull CI
-  ci <- coefs['uncivil', 'se']*1.96
+  ci <- coefs['uncivil2', 'Std. Error']*1.96
   # Combine/return
   effs <- c(coef=coef, ci=ci)
   effs
@@ -125,10 +125,10 @@ effs <- sapply(list(mFave, mRT), function(x){
   t()
 
 # Plot and save
-barCenters <- barplot(effs[,1], ylim=c(0, 350))
-pdf('~/Dropbox/Projects/Twitter/engageMods_effects_update.pdf', width=6, height=6)
+barCenters <- barplot(effs[,1], ylim=c(0, 600))
+pdf('~/Dropbox/Projects/Twitter/engageMods_effects_incivility.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 350), ylab='Effect of Political Incivility', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
+barplot(effs[,1], ylim=c(0, 600), ylab='Effect of Political Incivility', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  

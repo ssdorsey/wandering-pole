@@ -43,10 +43,10 @@ for(name in names){
 
 # Set up interrater tweets to merge with original tweet codings
 irt <- dplyr::select(irt, c(id,irName, HTC, Unifying, Divisive, Congratulatory)) %>%
-  rename(htcIR=HTC) %>%
-  rename(unifIR = Unifying) %>%
-  rename(divIR = Divisive) %>%
-  rename(congratIR = Congratulatory)
+  dplyr::rename(htcIR=HTC) %>%
+  dplyr::rename(unifIR = Unifying) %>%
+  dplyr::rename(divIR = Divisive) %>%
+  dplyr::rename(congratIR = Congratulatory)
 
 # Merge initial tweets coding to interrater relability coding
 mt <- left_join(ot, irt, by='id') %>%

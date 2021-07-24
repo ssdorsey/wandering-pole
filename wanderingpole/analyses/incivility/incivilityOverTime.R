@@ -8,14 +8,13 @@ library(tidyverse)
 library(magrittr)
 library(abmisc)
 library(lubridate)
-setwd('~/Dropbox/Projects/Twitter/Twitter')
+setwd('~/Dropbox/Projects/Twitter')
 
 # Load data with covariates merged
-mut <- read.csv('MonthlyUncivilTweets.csv', stringsAsFactors = FALSE)
+mut <- read.csv('Twitter/monthlyUncivilTweets.csv', stringsAsFactors = FALSE)
 
 # Format names
 names(mut) <- tolower(names(mut))
-names(mut)[1] <- 'Party'
 
 # Reformat date
 mut %<>% mutate(month=as.character(month))
@@ -23,9 +22,6 @@ mut$month[nchar(mut$month)==1] <- paste0('0', mut$month[nchar(mut$month)==1])
 mut %<>% mutate(yearmonth=paste0(year, '-', month)) %>%
   mutate(yearmonthdate=parse_date_time(yearmonth, orders=c('Y-m'))) %>%
   mutate(yearmonthaxis=format(yearmonthdate, '%Y-%b'))
-  
-# Remove independents
-plotdf <- filter(mut, Party!='I')
 
 
 

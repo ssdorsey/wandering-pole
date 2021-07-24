@@ -23,7 +23,7 @@ library(gridExtra)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
 
 # Load data with covariates merged
-tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds') 
+tw <- readRDS('~/Dropbox/Projects/Twitter/incivility_modelData.rds') 
 
 
 
@@ -40,7 +40,7 @@ twm <- tw %>%
   group_by(icpsr, congress) %>%
   dplyr::summarise(
     n=n(),
-    uncivil=table(uncivil)['1'],
+    uncivil=table(uncivil2)['1'],
     memberPresPty=unique(memberPresPty),
     absPVI=unique(absPVI),
     house=unique(house),
@@ -100,14 +100,14 @@ effs <- sapply(list(mSenMem, mSenIdMem), function(x){
   abs()
 
 # Plot and save
-barCenters <- barplot(effs[,1], ylim=c(0, 0.1))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_update.pdf', width=6, height=6)
+barCenters <- barplot(effs[,1], ylim=c(0, 0.08))
+pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 0.1), ylab='Change in Proportion Uncivil', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
+barplot(effs[,1], ylim=c(0, 0.08), ylab='Change in Proportion Uncivil', names.arg=c("Opposite President's\nParty", 'Ideological Extremity\n(2 SD Increase)'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
-  text(x=barCenters[ii], y=effs[ii,1]/4, paste0(round(effs[ii,1], 2), ' +/- ', round(effs[ii,2], 3)))
+  text(x=barCenters[ii], y=effs[ii,1]/5, paste0(round(effs[ii,1], 2), ' +/- ', round(effs[ii,2], 3)))
 }
 par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
@@ -123,13 +123,13 @@ effs[,'coef']/sd(twm$pct_uncivil)
 ### Run models, save
 
 # Full
-mFull <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + congress + icpsr, data=tw, family=binomial(link='logit'), sparse=FALSE, model=TRUE)
+mFull <- speedglm(uncivil2 ~ memberPresPty + absPVI + house + female + congress + icpsr, data=tw, family=binomial(link='logit'), sparse=FALSE, model=TRUE)
 # Add ideology (cuts 111th and 112th)
-mIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mIdeol <- speedglm(uncivil2 ~ memberPresPty + ideolDiffPos + absPVI + house + female + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 # Add seniority to full model
-mSeniority <- speedglm(uncivil ~ memberPresPty + absPVI + house + female + years + congress, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mSeniority <- speedglm(uncivil2 ~ memberPresPty + absPVI + house + female + years + congress, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 # Add seniority to ideology model
-mSeniorityIdeol <- speedglm(uncivil ~ memberPresPty + ideolDiffPos + absPVI + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
+mSeniorityIdeol <- speedglm(uncivil2 ~ memberPresPty + ideolDiffPos + absPVI + female + years + congress + icpsr, data=tw, family=binomial('logit'), model=TRUE, sparse=FALSE)
 
 # Save 
 save(mFull, mIdeol, mSeniority, mSeniorityIdeol, file='~/Dropbox/Projects/Twitter/invicilityMods.rds')

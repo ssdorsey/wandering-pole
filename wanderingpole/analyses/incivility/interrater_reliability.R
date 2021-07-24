@@ -13,6 +13,7 @@ library(data.table)
 library(tidyverse)
 library(irr)
 library(psych)
+options(scipen=999)
 
 # Load finished training data
 sp <- read.csv('~/Dropbox/Projects/Twitter/Twitter/training_data/spencer_training.csv', stringsAsFactors = FALSE)
@@ -59,10 +60,10 @@ overlap_m1 <- filter(mi, text %in% matches2) %>% filter(!duplicated(text)) %>% a
 overlap_s2 <- filter(sp2, text %in% matches2) %>% arrange(text)
 overlap_m1s2 <- cbind(overlap_m1, uncivil_2=overlap_s2$uncivil) %>%
   mutate(original='michael') %>%
-  select(-flagged)
+  dplyr::select(-flagged)
 
 # Join overlap DFs
-overlap2 <- overlap_m1s2
+overlap2 <- rbind(overlap_m1s2, overlap_s1m2)
 
 # Dataframe for two-rater agreement measures
 irdf2 <- overlap2 %>%
@@ -73,6 +74,12 @@ irdf2 <- overlap2 %>%
     rater2=uncivil_2
   ) 
 
+# Create final coding category
+overlap2 %<>% mutate(uncivil_final=ifelse(uncivil==uncivil_2, uncivil, NA)) %>%
+  dplyr::select(date, date_collected, divisive, screen_name, tweet_id, retweeted, type, original, uncivil, uncivil_2, uncivil_final, text)
+
+# Save to resolve discrepancies by hand and then use as the final training data to train the model
+# write.csv(overlap2, '~/Dropbox/Projects/Twitter/Twitter/training_data/training_final.csv', row.names=FALSE)
 
 #########################################################################################################################################################
 ### Interrater reliability
@@ -105,3 +112,4 @@ kripp.alpha(t(irdf2))
 
 # Compute cronbach's alpha
 alpha(irdf2)$total$std.alpha
+
