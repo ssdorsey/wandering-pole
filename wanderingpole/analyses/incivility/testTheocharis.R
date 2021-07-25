@@ -26,11 +26,7 @@ test <- read.csv("~/Dropbox/Projects/Twitter/wandering-pole/wanderingpole/data/t
 #########################################################################################################################################################
 ### Accuracy metrics
 
-
-#########################################################################################################################################################
-### Evaluate classifier on our test data
-
-### Use their classifier
+### Use Theocharis et al's classifier
 
 # Pull vector of test data
 text <- test$text
@@ -49,36 +45,57 @@ test$preds <- preds
 
 # Setup
 test %<>% mutate(acc = ifelse(preds==labels, 1, 0))
-zeros <- filter(test, labels==0)
-ones <- filter(test, labels==1)
 y <- factor(test$labels)
-y_zeros <- factor(zeros$labels)
-y_ones <- factor(ones$labels)
 predictions <- factor(test$preds)
-predictions_zeros <- factor(zeros$preds)
-predictions_ones <- factor(ones$preds)
-
 
 # Accuracy
 table(test$acc) %>% prop.table()
 filter(test, labels==1) %>% pull(acc) %>% table() %>% prop.table()
 filter(test, labels==0) %>% pull(acc) %>% table() %>% prop.table()
 
-
 # Precision
-posPredValue(predictions, y, positive='1')
+precision <- posPredValue(predictions, y, positive='1')
 
-
-
-
-
-# Compute precision
-
-
-# Compute recall
-
+# Recall
+recall <- sensitivity(predictions, y, positive="1")
 
 # Compute F1
+F1 <- (2 * precision * recall) / (precision + recall)
 
 
 
+#########################################################################################################################################################
+### VADER Analysis
+
+### Get VADER predictions
+
+# Run VADER
+vader <- vader_df(test$text)
+
+# Generate predictions (in the standard way, compound < -0.05)
+vader %<>% mutate(vader_pred = ifelse(compound <= -0.05, 1, 0))
+
+# Add predictions to test
+test$vader <- vader$vader_pred
+
+
+### Performance metrics
+
+# Setup
+test %<>% mutate(acc_vader = ifelse(vader==labels, 1, 0))
+y <- factor(test$labels)
+predictions <- factor(test$vader)
+
+# Accuracy
+table(test$acc_vader) %>% prop.table()
+filter(test, labels==1) %>% pull(acc_vader) %>% table() %>% prop.table()
+filter(test, labels==0) %>% pull(acc_vader) %>% table() %>% prop.table()
+
+# Precision
+precision <- posPredValue(predictions, y, positive='1')
+
+# Recall
+recall <- sensitivity(predictions, y, positive="1")
+
+# Compute F1
+F1 <- (2 * precision * recall) / (precision + recall)
