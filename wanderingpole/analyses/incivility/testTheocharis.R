@@ -47,6 +47,11 @@ test$preds <- preds
 test %<>% mutate(acc = ifelse(preds==labels, 1, 0))
 y <- factor(test$labels)
 predictions <- factor(test$preds)
+cm <- as.matrix(table(Actual=test$labels, Predicted=test$preds))
+n <- sum(cm) # number of instances
+diag <- diag(cm) # number of correctly classified instances per class 
+rowsums <- apply(cm, 1, sum) # number of instances per class
+colsums <- apply(cm, 2, sum) # number of predictions per class
 
 # Accuracy
 table(test$acc) %>% prop.table()
@@ -54,13 +59,19 @@ filter(test, labels==1) %>% pull(acc) %>% table() %>% prop.table()
 filter(test, labels==0) %>% pull(acc) %>% table() %>% prop.table()
 
 # Precision
-precision <- posPredValue(predictions, y, positive='1')
+precision <- diag / colsums
+mean(precision) # Macro average
+sum(precision*rowsums/n) # weighted average
 
 # Recall
-recall <- sensitivity(predictions, y, positive="1")
+recall <- diag / rowsums
+mean(recall) # Macro average
+sum(recall*rowsums/n) # weighted average
 
-# Compute F1
-F1 <- (2 * precision * recall) / (precision + recall)
+# F1-score
+f1 <- (2 * precision * recall) / (precision + recall)
+mean(f1) # Macro average
+sum(f1*rowsums/n) # weighted average
 
 
 
@@ -85,6 +96,11 @@ test$vader <- vader$vader_pred
 test %<>% mutate(acc_vader = ifelse(vader==labels, 1, 0))
 y <- factor(test$labels)
 predictions <- factor(test$vader)
+cm <- as.matrix(table(Actual=test$labels, Predicted=test$vader))
+n <- sum(cm) # number of instances
+diag <- diag(cm) # number of correctly classified instances per class 
+rowsums <- apply(cm, 1, sum) # number of instances per class
+colsums <- apply(cm, 2, sum) # number of predictions per class
 
 # Accuracy
 table(test$acc_vader) %>% prop.table()
@@ -92,10 +108,16 @@ filter(test, labels==1) %>% pull(acc_vader) %>% table() %>% prop.table()
 filter(test, labels==0) %>% pull(acc_vader) %>% table() %>% prop.table()
 
 # Precision
-precision <- posPredValue(predictions, y, positive='1')
+precision <- diag / colsums
+mean(precision) # Macro average
+sum(precision*rowsums/n) # weighted average
 
 # Recall
-recall <- sensitivity(predictions, y, positive="1")
+recall <- diag / rowsums
+mean(recall) # Macro average
+sum(recall*rowsums/n) # weighted average
 
-# Compute F1
-F1 <- (2 * precision * recall) / (precision + recall)
+# F1-score
+f1 <- (2 * precision * recall) / (precision + recall)
+mean(f1) # Macro average
+sum(f1*rowsums/n) # weighted average

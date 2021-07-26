@@ -12,7 +12,7 @@ library(coefplot)
 setwd('~/Dropbox/Projects/Twitter')
 
 # Load classified tweets
-tw <- fread('~/Dropbox/Projects/Twitter/wandering-pole/wanderingpole/data/tweets_Jul2021.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
+tw <- fread('~/Dropbox/Projects/Twitter/wandering-pole/wanderingpole/data/tweets_Jul2021_v2.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
 tw %<>% 
   dplyr::rename(screen_name=author_username) %>%
   mutate(screen_name=tolower(screen_name)) %>%
@@ -305,4 +305,4 @@ seniority %<>%
 tw <- left_join(tw, seniority, by=c('icpsr', 'congress', 'house'))
 
 # Save
-saveRDS(tw, '~/Dropbox/Projects/Twitter/incivility_modelData.rds')
+saveRDS(tw, '~/Dropbox/Projects/Twitter/incivility_modelData_v2.rds')
