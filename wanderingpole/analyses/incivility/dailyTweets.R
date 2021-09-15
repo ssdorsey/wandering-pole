@@ -6,6 +6,7 @@ rm(list=ls())
 library(tidyverse)
 library(magrittr)
 library(abmisc)
+library(data.table)
 
 # Load data with covariates merged
 tw <- readRDS('~/Dropbox/Projects/Twitter/modelData.rds')
@@ -48,7 +49,7 @@ monthlyTweets <- tw %>%
   dplyr::summarise(
     YearMonth=unique(YearMonth),
     Tweets=n(),
-    Uncivil=table(uncivil2)['1'],
+    Uncivil=table(uncivil)['1'],
     `Percent Uncivil`=Uncivil/Tweets
   )
 
@@ -59,7 +60,7 @@ monthlyOverall <- tw %>%
     party='All',
     YearMonth=unique(YearMonth),
     Tweets=n(),
-    Uncivil=table(polarizing)['1'],
+    Uncivil=table(uncivil)['1'],
     `Percent Uncivil`=Uncivil/Tweets
   )
 
@@ -67,4 +68,4 @@ monthlyOverall <- tw %>%
 monthlyTweets <- rbind(monthlyTweets, monthlyOverall)
 
 # Save
-write.csv(monthlyTweets, '~/Dropbox/Projects/Twitter/Twitter/monthlyUncivilTweets.csv', row.names=FALSE)
+fwrite(monthlyTweets, '~/Dropbox/Projects/Twitter/Twitter/monthlyUncivilTweets.csv', row.names=FALSE)

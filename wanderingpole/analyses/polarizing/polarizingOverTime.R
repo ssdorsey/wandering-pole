@@ -58,7 +58,7 @@ dev.off()
 
 
 ######################################################################################################################################################################
-### Table of tweets and uncivil tweets by year
+### Table of tweets and polarizing tweets by year
 
 library(kableExtra)
 twy <- mut %>%
