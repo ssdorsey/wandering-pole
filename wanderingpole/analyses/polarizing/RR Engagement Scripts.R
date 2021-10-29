@@ -7,11 +7,13 @@ library(lfe)
 library(data.table)
 library(lubridate)
 library(Hmisc)
+library(cowplot)
+# library(abmisc)
 
 
 #### Follower Analysis (figure 4)
 
-tweetsfollow <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/followerstweetsjoin.csv")
+tweetsfollow <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/followerstweetsjoin.csv")
 
 tweetsfollow  <- filter(tweetsfollow, followerchange > -10000)
 tweetsfollow  <- filter(tweetsfollow, icpsr.x != "NA")
@@ -42,7 +44,7 @@ stargazer(weeklyfollowersdivisive, weeklyfollowerstweets, weeklyfollowerspct, we
 
 #### Enagement Analysis (figure 3)
 
-tweets <- fread("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv")
+tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv")
 
 #add year variable
 
@@ -102,7 +104,7 @@ effPlotDat <- function(model){
   effs <- c(coef=coef, ci=ci)
   effs
 }
-effs <- sapply(list(mFave, mRT), function(x){
+effs <- sapply(list(likes, rts), function(x){
   effPlotDat(x)
 }) %>% 
   t()
@@ -116,7 +118,7 @@ barplot(effs[,1], ylim=c(0, 250), ylab='Effect of Polarizing Rhetoric', names.ar
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
-  text(x=barCenters[ii], y=effs[ii,1]/2, paste0(round(effs[ii,1], 2), ' +/- ', round(effs[ii,2], 2)))
+  text(x=barCenters[ii], y=effs[ii,1]/2, paste0(round(effs[ii,1], 1), ' +/- ', round(effs[ii,2], 1)))
 }
 par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
@@ -126,41 +128,18 @@ dev.off()
 
 #yearly follower breakouts (new figure)
 
-tweets10 <- filter(tweetsavgs, year == "2010")
-tweets11 <- filter(tweetsavgs, year == "2011")
-tweets12 <- filter(tweetsavgs, year == "2012")
-tweets13 <- filter(tweetsavgs, year == "2013")
-tweets14 <- filter(tweetsavgs, year == "2014")
-tweets15 <- filter(tweetsavgs, year == "2015")
-tweets16 <- filter(tweetsavgs, year == "2016")
-tweets17 <- filter(tweetsavgs, year == "2017")
-tweets18 <- filter(tweetsavgs, year == "2018")
-tweets19 <- filter(tweetsavgs, year == "2019")
-tweets20 <- filter(tweetsavgs, year == "2020")
+years <- 2010:2020
+likes_mods <- vector(mode='list', length=d(years))
+rts_mods <- vector(mode='list', length=d(years))
+tweetsavgs %<>% mutate(years_num=num(year))
 
-likes10 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets10)
-likes11 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets11)
-likes12 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets12)
-likes13 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets13)
-likes14 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets14)
-likes15 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets15)
-likes16 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets16)
-likes17 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets17)
-likes18 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets18)
-likes19 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets19)
-likes20 <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweets20)
-
-rts10 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets10)
-rts11 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets11)
-rts12 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets12)
-rts13 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets13)
-rts14 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets14)
-rts15 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets15)
-rts16 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets16)
-rts17 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets17)
-rts18 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets18)
-rts19 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets19)
-rts20 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets20)
+for(ii in seq_along(years)){
+  mod_df <- filter(tweetsavgs, years_num==years[ii])
+  likes_mod <- felm(likepct ~ polarizing | yearhandle + created_at, data = mod_df)
+  rts_mod <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = mod_df)
+  likes_mods[[ii]] <- likes_mod
+  rts_mods[[ii]] <- rts_mod
+}
 
 stargazer(likes10, likes11, likes12, likes13, likes14, likes15, likes16, likes17, 
           likes18, likes19, likes20, rts10, rts11, rts12, rts13, rts14, rts15, rts16, rts17, rts18, rts19, rts20,
@@ -168,4 +147,58 @@ stargazer(likes10, likes11, likes12, likes13, likes14, likes15, likes16, likes17
 
 #### extract coefficients and errors
 
-#### plot coefficients (perhaps just a bar chart, or maybe a line graph with two lines for likes and retweets, with year as running variable)
+effs_likes <- sapply(likes_mods, function(x){
+  effPlotDat(x)
+}) %>% 
+  t()
+effs_rts <- sapply(rts_mods, function(x){
+  effPlotDat(x)
+}) %>% 
+  t()
+
+# Add year and CI range values to effects data
+effs_likes <- as.data.frame(effs_likes) %>%
+  mutate(year=years,
+         ci_lo=coef-ci,
+         ci_hi=coef+ci) 
+effs_rts <- as.data.frame(effs_rts) %>%
+  mutate(year=years,
+         ci_lo=coef-ci,
+         ci_hi=coef+ci)
+
+
+#### plot coefficients and standard errors
+
+# Likes
+likes_plot <- ggplot(data=effs_likes, mapping=aes(year, coef)) + 
+  geom_point(size=3) +
+  geom_smooth(method='lm', se=FALSE, color='black', linetype='dashed') +
+  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.3, size=1) +
+  ylab('Effect of Polarizing Rhetoric') +
+  xlab('') +
+  ggtitle('Likes above Average') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) +
+  scale_y_continuous(breaks=seq(0, 140, 20)) +
+  theme(panel.grid.minor.x = element_blank(), panel.grid.major.x=element_blank())
+
+# Retweets
+rts_plot <- ggplot(data=effs_rts, mapping=aes(year, coef)) + 
+  geom_point(size=3) +
+  geom_smooth(method='lm', se=FALSE, color='black', linetype='dashed') +
+  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.3, size=1) +
+  ylab('Effect of Polarizing Rhetoric') +
+  xlab('') +
+  ggtitle('Retweets above Average') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=12)) +
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) +
+  scale_y_continuous(breaks=seq(0, 140, 20)) +
+  theme(panel.grid.minor.x = element_blank(), panel.grid.major.x=element_blank())
+
+# Plot together
