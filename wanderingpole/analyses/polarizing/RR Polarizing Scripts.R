@@ -79,10 +79,11 @@ congresstweets <- tweets %>%
 
 handles <- read.csv("C:/Users/User/Dropbox/Twitter/US Congress Handles Master List.csv")
 
-handles <- select(handles, icpsr, twitter_lower)
+handles <- select(handles, icpsr, twitter_lower, Official)
 
 congresstweets <- merge(congresstweets, handles, by = "twitter_lower")
 
+##############skip for handle-level analysis
 congresstweets <- congresstweets %>%
   group_by(icpsr, congress) %>%
   dplyr::summarize(
@@ -116,6 +117,11 @@ NPmodel3 <- lm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority 
 
 stargazer(govmodel, DWmodel, NPmodel, govmodel2, DWmodel2, NPmodel2, govmodel3, DWmodel3, NPmodel3,
           type="html",  out="Predictive Polarizing Models.htm")
+
+##Official verus Campaign / Account level Models
+govmodel <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = congresstweets)
+DWmodel <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = congresstweets)
+NPmodel <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = congresstweets)
 
 
 ##Pre-Trump split
