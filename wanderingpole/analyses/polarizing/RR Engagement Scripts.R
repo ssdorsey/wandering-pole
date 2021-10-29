@@ -54,7 +54,8 @@ tweets$yearhandle <- paste0(as.character(tweets$twitter_lower), "-", as.characte
 
 #remove API errors for likes on retweets
 
-tweets <- filter(tweets, public_metrics.like_count > 0)
+tweets <- tweets %>% 
+  filter(substr(text, 1, 3) != "RT ")
 
 #create year-name like and retweet averages
 
@@ -163,7 +164,7 @@ rts20 <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweets20
 
 stargazer(likes10, likes11, likes12, likes13, likes14, likes15, likes16, likes17, 
           likes18, likes19, likes20, rts10, rts11, rts12, rts13, rts14, rts15, rts16, rts17, rts18, rts19, rts20,
-          type="html",  out="Engagement Tweet Models.htm")
+          type="html",  out="Engagement Tweet Models Yearly.htm")
 
 #### extract coefficients and errors
 

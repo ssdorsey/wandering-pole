@@ -105,9 +105,9 @@ govmodel <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majori
 DWmodel <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican| congress.x, data = congresstweets)
 NPmodel <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican| congress.x, data = congresstweets)
 
-govmodel2 <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority | congress.x, data = congresstweets)
-DWmodel2 <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority | congress.x, data = congresstweets)
-NPmodel2 <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority | congress.x, data = congresstweets)
+govmodel2 <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority | congress.x + icpsr.x, data = congresstweets)
+DWmodel2 <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority | congress.x + icpsr.x, data = congresstweets)
+NPmodel2 <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority | congress.x + icpsr.x, data = congresstweets)
 
 govmodel3 <- lm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican, data = congresstweets)
 DWmodel3 <- lm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican, data = congresstweets)
@@ -116,3 +116,21 @@ NPmodel3 <- lm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority 
 
 stargazer(govmodel, DWmodel, NPmodel, govmodel2, DWmodel2, NPmodel2, govmodel3, DWmodel3, NPmodel3,
           type="html",  out="Predictive Polarizing Models.htm")
+
+
+##Pre-Trump split
+
+congresstweetspre <- filter(congresstweets, congress.x < 115)
+congresstweetspost <- filter(congresstweets, congress.x > 114)
+
+govmodelpre <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspre)
+DWmodelpre <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspre)
+NPmodelpre <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspre)
+
+govmodelpost <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspost)
+DWmodelpost <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspost)
+NPmodelpost <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = congresstweetspost)
+
+
+stargazer(govmodelpre, DWmodelpre, NPmodelpre, govmodelpost, DWmodelpost, NPmodelpost,
+          type="html",  out="Predictive Polarizing Models Trump.htm")
