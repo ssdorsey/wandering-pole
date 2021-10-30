@@ -1,3 +1,4 @@
+rm(list=ls())
 library(ggplot2)
 library(dplyr)
 library(stargazer)
@@ -126,7 +127,7 @@ dev.off()
 ########################
 
 
-#yearly follower breakouts (new figure)
+# Effects of polarizing rhetoric on engagement in each year
 
 years <- 2010:2020
 likes_mods <- vector(mode='list', length=d(years))
@@ -172,8 +173,8 @@ effs_rts <- as.data.frame(effs_rts) %>%
 # Likes
 likes_plot <- ggplot(data=effs_likes, mapping=aes(year, coef)) + 
   geom_point(size=3) +
-  geom_smooth(method='lm', se=FALSE, color='black', linetype='dashed') +
-  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.3, size=1) +
+  geom_smooth(method='loess', se=FALSE, color='black', linetype='dashed') +
+  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.2, size=1) +
   ylab('Effect of Polarizing Rhetoric') +
   xlab('') +
   ggtitle('Likes above Average') +
@@ -181,15 +182,16 @@ likes_plot <- ggplot(data=effs_likes, mapping=aes(year, coef)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=12)) +
+  ylim(20, 120) +
   scale_x_continuous(breaks=seq(2010, 2020, 1)) +
-  scale_y_continuous(breaks=seq(0, 140, 20)) +
+  scale_y_continuous(breaks=seq(20, 120, 20)) +
   theme(panel.grid.minor.x = element_blank(), panel.grid.major.x=element_blank())
 
 # Retweets
 rts_plot <- ggplot(data=effs_rts, mapping=aes(year, coef)) + 
   geom_point(size=3) +
-  geom_smooth(method='lm', se=FALSE, color='black', linetype='dashed') +
-  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.3, size=1) +
+  geom_smooth(method='loess', se=FALSE, color='black', linetype='dashed') +
+  geom_errorbar(aes(ymin=ci_lo, ymax=ci_hi), width=0.2, size=1) +
   ylab('Effect of Polarizing Rhetoric') +
   xlab('') +
   ggtitle('Retweets above Average') +
@@ -197,8 +199,12 @@ rts_plot <- ggplot(data=effs_rts, mapping=aes(year, coef)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=12)) +
+  ylim(20, 120) +
   scale_x_continuous(breaks=seq(2010, 2020, 1)) +
-  scale_y_continuous(breaks=seq(0, 140, 20)) +
+  scale_y_continuous(breaks=seq(20, 120, 20)) +
   theme(panel.grid.minor.x = element_blank(), panel.grid.major.x=element_blank())
 
 # Plot together
+pdf(file='~/Dropbox/Projects/Twitter/engagement_effects_over_time.pdf', width=6, height=6)
+cowplot::plot_grid(likes_plot, rts_plot, ncol=1)
+dev.off()
