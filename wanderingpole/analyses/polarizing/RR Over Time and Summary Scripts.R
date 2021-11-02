@@ -8,7 +8,9 @@ library(lfe)
 library(data.table)
 library(lubridate)
 library(Hmisc)
-
+library(stringr)
+library(kableExtra)
+library(tidyr)
 
 ###Over time plot
 
@@ -87,7 +89,6 @@ dev.off()
 
 ##Table of Tweets by Year (table 3)
 
-library(kableExtra)
 twy <- monthly %>%
   group_by(year, Party) %>%
   dplyr::summarise(
@@ -97,7 +98,8 @@ twy <- monthly %>%
   ) %>% 
   pivot_wider(names_from=Party, values_from=c(tweets, polarizing, pct.polarizing)) %>%
   dplyr::select(c(year, tweets_D, polarizing_D, pct.polarizing_D, tweets_R, polarizing_R, pct.polarizing_R, tweets_All, polarizing_All, pct.polarizing_All)) %>%
-  mutate(year=as.character(year))
+  mutate(year=as.character(year)) %>%
+  filter(!year %in% c('2009', '2021'))
 kbl(twy, format='latex', align='c',
     col.names=c('Year', '# Tweets', '# Polarizing', 'Pct. Polarizing', '# Tweets', '# Polarizing', 'Pct. Polarizing', 
                 '# Tweets', '# Polarizing', 'Pct. Polarizing'),
