@@ -39,11 +39,53 @@ stargazer(weeklyfollowersdivisive, weeklyfollowerstweets, weeklyfollowerspct, we
 
 #### extract coefficients and errors
 
+# Make into lists so we can get coefs and SEs
+raw_change <- list(weeklyfollowersdivisive, weeklyfollowerstweets, weeklyfollowerspct)
+pct_change <- list(weeklyfollowersdivisive2, weeklyfollowerstweets2, weeklyfollowerspct2)
+
+
+# Extract coefs and SEs
+effPlotDat <- function(model){
+  # Pull coefficient
+  coefs <- summary(model)$coefficients
+  coef <- coefs[,'Estimate']
+  # Pull CI
+  ci <- coefs[,'Std. Error']*1.96
+  # Combine/return
+  effs <- c(coef=coef, ci=ci)
+  effs
+}
+effs_raw <- sapply(raw_change, effPlotDat) %>% t() %>% as.data.frame()
+effs_pct <- sapply(pct_change, effPlotDat) %>% t() %>% as.data.frame()
+
 #### plot coefficients
+barCenters <- barplot(effs_raw$coef, ylim=c(0, 40))
+pdf('~/Dropbox/Projects/Twitter/Divisivefollowerchange.pdf', width=8, height=8)
+par(mar=c(3.1, 4.1, 2.1, 1.1))
+barplot(effs_raw$coef, ylim=c(0, 40), ylab='Weekly Numerical Change in Twitter Followers', names.arg=c('# Polarizing', '# Tweets', '% Polarizing'))
+for(ii in 1:3){
+  segments(x0=barCenters[ii], y0=effs_raw$coef[ii]+effs_raw$ci[ii], y1=effs_raw$coef[ii]-effs_raw$ci[ii], lwd=3)
+  arrows(x0=barCenters[ii], y0=effs_raw$coef[ii]+effs_raw$ci[ii], y1=effs_raw$coef[ii]-effs_raw$ci[ii], lwd=3, angle=90, code=3, length=0.05)  
+  text(x=barCenters[ii], y=effs_raw$coef[ii]/2, paste0(round(effs_raw$coef[ii], 2), ' +/- ', round(effs_raw$ci[ii], 2)))
+}
+par(mar=c(5.1, 4.1, 4.1, 2.1))
+dev.off()
+
+barCenters <- barplot(effs_pct$coef, ylim=c(0, 0.03))
+pdf('~/Dropbox/Projects/Twitter/DivisivefollowerchangePct.pdf', width=8, height=8)
+par(mar=c(3.1, 4.1, 2.1, 1.1))
+barplot(effs_pct$coef, ylim=c(0, 0.03), ylab='Weekly Percent Change in Twitter Followers', names.arg=c('# Polarizing', '# Tweets', '% Polarizing'))
+for(ii in 1:3){
+  segments(x0=barCenters[ii], y0=effs_pct$coef[ii]+effs_pct$ci[ii], y1=effs_pct$coef[ii]-effs_pct$ci[ii], lwd=3)
+  arrows(x0=barCenters[ii], y0=effs_pct$coef[ii]+effs_pct$ci[ii], y1=effs_pct$coef[ii]-effs_pct$ci[ii], lwd=3, angle=90, code=3, length=0.05)  
+  text(x=barCenters[ii], y=effs_pct$coef[ii]/2, paste0(round(effs_pct$coef[ii], 3), ' +/- ', round(effs_pct$ci[ii], 3)))
+}
+par(mar=c(5.1, 4.1, 4.1, 2.1))
+dev.off()
 
 ########################
 
-#### Enagement Analysis (figure 3)
+#### Engagement Analysis (figure 3)
 
 tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv")
 
@@ -112,10 +154,10 @@ effs <- sapply(list(likes, rts), function(x){
 
 #### plot coefficients
 
-barCenters <- barplot(effs[,1], ylim=c(0, 250))
+barCenters <- barplot(effs[,1], ylim=c(0, 100))
 pdf('~/Dropbox/Projects/Twitter/engageMods_effects_polarizing.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 250), ylab='Effect of Polarizing Rhetoric', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
+barplot(effs[,1], ylim=c(0, 100), ylab='Effect of Polarizing Rhetoric', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  

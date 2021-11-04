@@ -27,7 +27,7 @@ tweets$yearmonth <- paste0(as.character(tweets$year), "/", as.character(tweets$m
 
 handles <- read.csv("~/Dropbox/Projects/Twitter/Twitter/US Congress Handles Master List.csv")
 
-info <- select(handles, twitter_lower, party)
+info <- dplyr::select(handles, twitter_lower, party)
 
 tweets <- left_join(tweets, info, by = "twitter_lower") 
 ##issue here with eric cantor and kevin mccarthy using gopleader account, possible to remove one by hand as they are same party? Make eric cantor gopleader twitter variable blank?
@@ -99,7 +99,7 @@ twy <- monthly %>%
   pivot_wider(names_from=Party, values_from=c(tweets, polarizing, pct.polarizing)) %>%
   dplyr::select(c(year, tweets_D, polarizing_D, pct.polarizing_D, tweets_R, polarizing_R, pct.polarizing_R, tweets_All, polarizing_All, pct.polarizing_All)) %>%
   mutate(year=as.character(year)) %>%
-  filter(!year %in% c('2009', '2021'))
+  filter(year != '2021')
 kbl(twy, format='latex', align='c',
     col.names=c('Year', '# Tweets', '# Polarizing', 'Pct. Polarizing', '# Tweets', '# Polarizing', 'Pct. Polarizing', 
                 '# Tweets', '# Polarizing', 'Pct. Polarizing'),

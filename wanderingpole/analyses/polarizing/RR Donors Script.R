@@ -100,7 +100,7 @@ tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Fi
 
 handles <- read.csv("~/Dropbox/Projects/Twitter/Twitter/US Congress Handles Master List.csv")
 
-handles <- select(handles, icpsr, twitter_lower)
+handles <- dplyr::select(handles, icpsr, twitter_lower)
 
 congresstweets <- right_join(tweets, handles, by = "twitter_lower")
 
