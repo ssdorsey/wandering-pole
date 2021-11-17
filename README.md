@@ -1,6 +1,8 @@
 # WanderingPole
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Magnetic_North_Pole_Positions_2015.svg" width="300"> 
+<img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Magnetic_North_Pole_Positions_2015.svg" width="200"> 
+
+This is the base code for *Dynamics of Polarizing Rhetoric in Congressional Tweets* 
 
 ## Setup
 1. install pytorch (CUDA recommended if GPU available)
@@ -20,3 +22,4 @@ The latest (pretrained) model we use for classifying polarization is available o
 After training a model (or downloading the pre-trained model), classification can be run on the tweets in the mongoDB collection using the files in the classify_tweets directory
 
 ## Analysis
+Various scripts available in the analyses directory.
