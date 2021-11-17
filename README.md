@@ -5,23 +5,18 @@
 ## Setup
 1. install pytorch (CUDA recommended if GPU available)
 2. clone this git and install requirements
-
-Note: WanderingPole currently saves/loads all tweets as flat .json files but could be easily converted to using SQL/MongoDB for increased efficiency as the collection grows
+3. install mongoDB, set up a database named `wanderingpole` and a collection named `tweets`
 
 ## Collecting Tweets
 
-Collection should be run at least once a week to avoid gaps in the data. 
-
-Relies on a .csv file with a column labelled "twitter" that contains the twitter handles to collect.
-
-The Twitter API is limited to 3,200 most recent tweets per user. You must insert your own API credentials in collect_api.py.
+Using the new academic license for Twitter, it is possible to collect a full collection of tweets for each user. This is done using collect.py in the collectingtweets directory.
 
 ## Training Models
-Relies on the terrific HuggingFace pytorch-port of RoBERTa. Run with train_classifier.py.
+Relies on the terrific HuggingFace versions of RoBERTa/BERTweet. Run with train_classifier.py.
 
-The latest (pretrained) model we use for classifying polarization is available HERE
+The latest (pretrained) model we use for classifying polarization is available on huggingface
 
 ## Classifying Tweets
-After training a model (or downloading the pre-trained model), classification on a collection of .json files can be run with 
+After training a model (or downloading the pre-trained model), classification can be run on the tweets in the mongoDB collection using the files in the classify_tweets directory
 
 ## Analysis

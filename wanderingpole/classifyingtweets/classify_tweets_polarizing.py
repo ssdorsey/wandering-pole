@@ -46,8 +46,8 @@ def process_docs(list_docs):
             },
             {
                 '$set': {
-                    'uncivil2': int(results[nn]),
-                    'uncivil2_outputs': [float(mo) for mo in model_outputs[nn]]
+                    'polarizing': int(results[nn]),
+                    'polarizing_outputs': [float(mo) for mo in model_outputs[nn]]
                 }
             }
         )
@@ -56,8 +56,8 @@ if __name__ == "__main__":
     # load the model
     batch_size = 512
 
-    model = ClassificationModel('bertweet'
-                            ,  r'D:/Dropbox/wandering-pole/wanderingpole/model_berttweet/'
+    model = ClassificationModel('roberta'
+                            , 'D:\Dropbox\Twitter\ModelOutput'
                             , num_labels=2
                             , args={
                                 'eval_batch_size':batch_size
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     count = db.tweets.count_documents(
         {
-            'uncivil2': {'$exists': False},
+            'polarizing': {'$exists': False},
             'text': {'$exists': True}
         }
     )
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     cursor = db.tweets.find(
         {
-            'uncivil2': {'$exists': False},
+            'polarizing': {'$exists': False},
             'text': {'$exists': True}
         }
     )
@@ -98,8 +98,8 @@ if __name__ == "__main__":
 #     {},
 #     {
 #         '$unset': {
-#             'uncivil2_outputs': 1,
-#             'uncivil2': 1
+#             'model_outputs': 1,
+#             'uncivil': 1
 #         }
 #     }
 # )

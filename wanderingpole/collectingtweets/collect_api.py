@@ -7,53 +7,68 @@ code for pulling:
 
 @ S.S. Dorsey
 """
+from typing import List, Dict
 import pandas as pd
-import datetime
+from datetime import datetime
 import json
 from time import sleep
 import math
 import tweepy
-import progressbar
+from tqdm import tqdm, trange
+import os
+from pathlib import Path
 
-from pymongo.errors import DuplicateKeyError
 from pymongo import MongoClient
-
+from pymongo.errors import BulkWriteError
 
 # ------------------------------------------------------------------------------
 # credentials
 # ------------------------------------------------------------------------------
 # mongo
-with open('mongo_uri.txt', 'r') as _file:
+_ROOT = Path(os.path.abspath(os.path.dirname(__file__))).as_posix()
+
+def get_cred_path(path):
+    return Path('/'.join(_ROOT.split('/')[:-2]), 'wanderingpole', path).joinpath()
+
+
+with open(get_cred_path('mongo_uri.txt'), 'r') as _file:
     mongo_uri = _file.read()
 
 db = MongoClient(mongo_uri).wanderingpole
 
 #Twitter API credentials
-with open('keys_secrets.json', 'r') as _file:
-    keys_secrets = json.load(_file)
+with open(get_cred_path('keys_secrets.json'), 'r') as _file:
+    keys = json.load(_file)
 
-auth = tweepy.OAuthHandler(keys_secrets['consumer_key'], keys_secrets['consumer_secret'])
-auth.set_access_token(keys_secrets['access_key'], keys_secrets['access_secret'])
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+auth = tweepy.AppAuthHandler(keys['consumer_key'], keys['consumer_secret'])
+
+api = tweepy.API(auth, wait_on_rate_limit=True)
 
 # ------------------------------------------------------------------------------
 # functions
 # ------------------------------------------------------------------------------
+def chunks(l, n):
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
-def user_details(handles):
+
+def convert_date(date_string: str) -> datetime:
+    """
+    converts the twitter datestring to a python datetime
+    """
+    return datetime.strptime(date_string, '%a %b %d %H:%M:%S %z %Y')
+
+
+def user_details(handles: list) -> list:
     """
     get the counts of all listed users
     """
     user_info = []
-    chunked_handles = [handles[ii:ii + 100] for ii in range(0, len(handles), 100)]
+    chunked_handles = chunks(handles, 100)
     for ch in chunked_handles:
         users = api.lookup_users(screen_names=ch)
         for user in users:
-            user_info.append([user.screen_name,
-                              user.statuses_count,
-                              user.created_at,
-                              user.protected
-                              ])
+            user_info.append(user._json)
     return user_info
 
 
@@ -65,80 +80,80 @@ def process_tweet(tweet):
     output: dictionary of the data I want
     """
     _json = tweet._json
-    _json['date_collected'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    try:
-        db.tweets.insert_one(
-            _json
-        )
-    except DuplicateKeyError:
-        print(f'Error inserting: {_json["id"]}')
-        pass
+    _json['date_collected'] = datetime.now()
+    if not isinstance(_json['created_at'], datetime):
+        _json['created_at'] = convert_date(_json['created_at'])
+    if not isinstance(_json['user']['created_at'], datetime):
+        _json['user']['created_at'] = convert_date(_json['user']['created_at'])
     return _json
 
 
-def get_tweets_list(ids):
+def store_tweets(statuses):
+    """
+    Stores the tweet in the mongoDB
+    :param tweet: dict or list of dicts to store
+    """
+    if isinstance(statuses, dict):
+        statuses = [statuses]
+
+    try:
+        result = db.tweets.insert_many(statuses, ordered=False)
+        return result
+
+    except BulkWriteError as e_sum:
+        return e_sum
+
+
+def get_tweets_list(ids: list) -> list:
     """
     download a list of tweets based on ids
     """
     # set up batching for the Twitter api
-    start = 0
-    end = 100
-    limit = len(ids)
-    i = math.ceil(limit / 100)
-    # progressbar
-    my_bar = progressbar.ProgressBar(max_value=i)
+    cids = chunks(ids, 100)
     # get the data
-    for go in range(i):
-        id_batch = ids[start:end]
+    processed = []
+    for id_batch in cids:
         # pull the tweets from the api
-        tweets = api.statuses_lookup(id_batch)
+        tweets = api.statuses_lookup(id_batch, tweet_mode='extended')
         # process the tweets
         for tweet in tweets:
-            process_tweet(tweet)
-        # move to next batch
-        start += 100
-        end += 100
-        # update the progress bar
-        my_bar.update(go)
+            processed.append(process_tweet(tweet))
+    return processed
 
 
-def get_tweets_user(screen_name):
+def get_tweets_user(screen_name: str, smart_stop=False, return_result=False) -> list:
     """
     use the functions to download and save the most recent 3240 tweets
     """
-    old_cursor = db.tweets.find(
-        {'user.screen_name': screen_name}
-    )
-    old_ids = set([doc['id'] for doc in old_cursor])
     # get new
     print('# --------------------------------')
     print('{} via api'.format(screen_name))
     print('# --------------------------------')
-    all_new_tweets = []
     # set up the cursor to call the tweets
     cursor = tweepy.Cursor(api.user_timeline,
                            screen_name=screen_name,
-                           tweet_mode='extended'
-                           ).items()
-    # collect everything
-    my_bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
-    while True:
-        try:
-            new_tweet = cursor.next()
-            # process the tweets
-            processed = process_tweet(new_tweet)
-            all_new_tweets.append(processed)
-            # break if I already have a tweet(caught up to history)
-            if processed['id'] in old_ids:
-                break
-            # update progress
-            my_bar.update(len(all_new_tweets))
-        except tweepy.TweepError:
-            print('Tweepy error, moving to next handle')
-            # sleep(60 * 15)
-            # continue
-            break
-        except StopIteration:
-            break
+                           tweet_mode='extended', 
+                           count=16100
+                           ).pages()
 
+    all_processed = []
+    pbar = tqdm()
+    for page in cursor:
+        # process
+        sup_processed = []
+        for tweet in page:
+            processed = process_tweet(tweet)
+            sup_processed.append(processed)
+        all_processed.extend(sup_processed)
+        # insert
+        res = store_tweets(sup_processed)
+        # update the bar
+        pbar.update(len(sup_processed))
+        # check for duplicates
+        if smart_stop:
+            if isinstance(res, BulkWriteError):
+                break
+    pbar.close()
+    
+    if return_result:
+        return all_processed
