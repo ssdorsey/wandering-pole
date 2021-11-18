@@ -135,6 +135,13 @@ DWmodelpost <- felm(pct.uncivil ~ DWscaled + Pres.Party + PVIscaled + chamber.y 
 
 stargazer(govmodelpre, govmodelpost, DWmodelpre, DWmodelpost, type="html", out = "Incivility Mods Pre Post.htm")
 
+### Plot seniority
+
+ggplot(congresstweets, aes(x=Seniority, y=pct.uncivil, shape=as.factor(republican), color=as.factor(republican))) +
+  geom_point() +
+  stat_smooth(aes(fill=as.factor(republican)))+
+  facet_wrap(~ congress.x)
+
 ### Plot results
 
 ## Data for effect sizes
