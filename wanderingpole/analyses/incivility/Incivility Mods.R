@@ -13,14 +13,14 @@ library(Hmisc)
 
 ##Covariate Merging by Congress
 
-nominate <- read.csv("C:/Users/User/Dropbox//Twitter/covariateData/RR/HSall_members2021.csv")
+nominate <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/HSall_members2021.csv")
 
-c111 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 111th.csv")
-c112 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 112th.csv")
-c113 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 113th.csv")
-c114 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 114th.csv")
-c115 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 115th.csv")
-c116 <- read.csv("C:/Users/User/Dropbox/Twitter/covariateData/RR/Members by Congress 116th.csv")
+c111 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 111th.csv")
+c112 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 112th.csv")
+c113 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 113th.csv")
+c114 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 114th.csv")
+c115 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 115th.csv")
+c116 <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/Members by Congress 116th.csv")
 
 c111$GovTrack <- as.numeric(c111$GovTrack)
 c112$GovTrack <- as.numeric(c112$GovTrack)
@@ -70,7 +70,7 @@ combined$icpsrcongress <- paste0(as.character(combined$icpsr),"-", as.character(
 
 ##Tweets by Member
 
-tweets <- fread("C:/Users/User/Dropbox/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv")
+tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv")
 
 congresstweets <- tweets %>%
   group_by(twitter_lower, congress) %>%
@@ -80,7 +80,7 @@ congresstweets <- tweets %>%
   ) %>%
   ungroup()
 
-handles <- read.csv("C:/Users/User/Dropbox/Twitter/US Congress Handles Master List.csv")
+handles <- read.csv("~/Dropbox/Projects/Twitter/Twitter/US Congress Handles Master List.csv")
 
 handles <- dplyr::select(handles, icpsr, twitter_lower, Official)
 

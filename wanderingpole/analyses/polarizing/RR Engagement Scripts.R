@@ -91,7 +91,7 @@ tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Fi
 
 #add year variable
 
-tweets$year <- format(as.Date(tweets$created_at, format="%m/%d/%Y"),"%Y")
+tweets$year <- str_extract(tweets$created_at, '^[0-9]{4}')
 
 #create year-handle identifier
 
@@ -128,9 +128,9 @@ tweetsavgs$retweetpct <- ((tweetsavgs$public_metrics.retweet_count - tweetsavgs$
 
 #run regressions
 
-likes <- felm(likepct ~ polarizing | yearhandle + created_at, data = tweetsavgs)
+likes <- felm(likediff ~ polarizing | yearhandle + created_at, data = tweetsavgs)
 
-rts <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = tweetsavgs)
+rts <- felm(retweetdiff ~ polarizing | yearhandle + created_at, data = tweetsavgs)
 
 stargazer(likes, rts,
           type="html",  out="Engagement Tweet Models.htm")
@@ -154,10 +154,10 @@ effs <- sapply(list(likes, rts), function(x){
 
 #### plot coefficients
 
-barCenters <- barplot(effs[,1], ylim=c(0, 100))
+barCenters <- barplot(effs[,1], ylim=c(0, 600))
 pdf('~/Dropbox/Projects/Twitter/engageMods_effects_polarizing.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 100), ylab='Effect of Polarizing Rhetoric', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
+barplot(effs[,1], ylim=c(0, 600), ylab='Effect of Polarizing Rhetoric', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
@@ -177,9 +177,9 @@ rts_mods <- vector(mode='list', length=d(years))
 tweetsavgs %<>% mutate(years_num=num(year))
 
 for(ii in seq_along(years)){
-  mod_df <- filter(tweetsavgs, years_num==years[ii])
+  mod_df <- filter(tweetsavg, years_num==years[ii])
   likes_mod <- felm(likepct ~ polarizing | yearhandle + created_at, data = mod_df)
-  rts_mod <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = mod_df)
+  rts_mod <- felm(retweetavg ~ polarizing | yearhandle + created_at, data = mod_df)
   likes_mods[[ii]] <- likes_mod
   rts_mods[[ii]] <- rts_mod
 }

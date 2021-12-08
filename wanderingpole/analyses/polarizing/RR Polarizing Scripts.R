@@ -9,7 +9,8 @@ library(lfe)
 library(data.table)
 library(lubridate)
 library(Hmisc)
-# library(abmisc)
+library(abmisc)
+library(tidyverse)
 
 ##Covariate Merging by Congress
 
@@ -115,11 +116,11 @@ DWmodel <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + chamber.y + fema
 
 
 ### Pre/post-trump split models
-govmodelpre <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = filter(congresstweets, congress.x < 115))
-govmodelpost <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = filter(congresstweets, congress.x > 114))
+govmodelpre <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + chamber.y + female | congress.x, data = filter(congresstweets, congress.x < 115))
+govmodelpost <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + chamber.y + female | congress.x, data = filter(congresstweets, congress.x > 114))
 
-DWmodelpre <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = filter(congresstweets, congress.x < 115))
-DWmodelpost <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female | congress.x, data = filter(congresstweets, congress.x > 114))
+DWmodelpre <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + chamber.y + female | congress.x, data = filter(congresstweets, congress.x < 115))
+DWmodelpost <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + chamber.y + female | congress.x, data = filter(congresstweets, congress.x > 114))
 
 
 ### Plot results
@@ -127,13 +128,21 @@ DWmodelpost <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majo
 ## Data for effect sizes
 
 # Flexible function for each plot
-effPlotDat <- function(models, plot_vars){
+effPlotDat <- function(models, plot_vars, mod_df=congresstweets){
   if(length(models)==1){
     mod <- models[[1]]
     # Pull coefficients
     coef_tab <- summary(mod)$coefficients
     coefs <- coef_tab[plot_vars,'Estimate']
     cis <- coef_tab[plot_vars,'Std. Error']*1.96
+    
+    # Put in terms of 2 SD increase for continuous variables
+    for(ii in seq_along(plot_vars)){
+      if(plot_vars[ii] != 'Pres.Party'){
+        coefs[ii] <- coefs[ii]*sd(mod_df[,plot_vars[ii]], na.rm=TRUE)*2
+        cis[ii] <- cis[ii]*sd(mod_df[,plot_vars[ii]], na.rm=TRUE)*2
+      }
+    }
     
     # Combine/return
     effs <- data.frame(coef=coefs, ci=cis)
@@ -142,9 +151,18 @@ effPlotDat <- function(models, plot_vars){
   } else {
     effs <- sapply(models, function(mod){
       # Pull coefficients
+      iter_vars <- intersect(plot_vars, rownames(mod$coefficients))
       coef_tab <- summary(mod)$coefficients
-      coefs <- coef_tab[intersect(plot_vars, rownames(mod$coefficients)),'Estimate']
-      cis <- coef_tab[intersect(plot_vars, rownames(mod$coefficients)),'Std. Error']*1.96
+      coefs <- coef_tab[iter_vars,'Estimate']
+      cis <- coef_tab[iter_vars,'Std. Error']*1.96
+      
+      # Put in terms of 2 SD increase for continuous variables
+      for(ii in seq_along(iter_vars)){
+        if(iter_vars[ii] != 'Pres.Party'){
+          coefs[ii] <- coefs[ii]*sd(mod_df[,iter_vars[ii]], na.rm=TRUE)*2
+          cis[ii] <- cis[ii]*sd(mod_df[,iter_vars[ii]], na.rm=TRUE)*2
+        }
+      }
       
       # Combine/return
       eff <- data.frame(coef=coefs, ci=cis)
@@ -174,7 +192,7 @@ effs_tr <- effPlotDat(models=list(DWmodelpre, DWmodelpost), plot_vars='Pres.Part
 barCenters <- barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_party.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15), ylab='Change in Proportion Polarizing', names.arg=c("Overall", 'Obama', 'Trump'))
+barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', names.arg=c("Overall", 'Obama', 'Trump'))
 segments(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3)
 arrows(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3, angle=90, code=3, length=0.05)  
 text(x=barCenters[1], y=effs_ps[1,1]/4, paste0(round(effs_ps[1,1], 2), ' +/- ', round(effs_ps[1,2], 3)))
@@ -187,10 +205,10 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 # Electoral safety
-barCenters <- barplot(effs_ps[2,1], ylim=c(0, 0.005))
+barCenters <- barplot(effs_ps[2,1], ylim=c(0, 0.15))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_electoral_safety.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_ps[2,1], ylim=c(0, 0.005), xlim=c(-0.5, 2), ylab='Change in Proportion Polarizing', names.arg='')
+barplot(effs_ps[2,1], ylim=c(0, 0.15), xlim=c(-0.5, 2), ylab='Effect on Proportion Polarizing', names.arg='')
 segments(x0=barCenters, y0=effs_ps[2,1]-effs_ps[2,2], y1=effs_ps[2,1]+effs_ps[2,2], lwd=3)
 arrows(x0=barCenters, y0=effs_ps[2,1]-effs_ps[2,2], y1=effs_ps[2,1]+effs_ps[2,2], lwd=3, angle=90, code=3, length=0.05)  
 text(x=barCenters, y=effs_ps[2,1]/4, paste0(round(effs_ps[2,1], 3), ' +/- ', round(effs_ps[2,2], 3)))
@@ -198,10 +216,10 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 # Plot two ways to measure ideological extremity
-barCenters <- barplot(effs_ie[,1], ylim=c(0, 0.4))
+barCenters <- barplot(effs_ie[,1], ylim=c(0, 0.15))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_ideology.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_ie[,1], ylim=c(0, 0.4), ylab='Change in Proportion Polarizing', 
+barplot(effs_ie[,1], ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', 
         names.arg=c("GovTrack", 'DW-NOMINATE'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs_ie[ii,1]-effs_ie[ii,2], y1=effs_ie[ii,1]+effs_ie[ii,2], lwd=3)
@@ -215,7 +233,7 @@ dev.off()
 barCenters <- barplot(effs_tr[,1], ylim=c(0, 0.15))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_trump.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_tr[,1], ylim=c(0, 0.15), ylab='Change in Proportion Polarizing', names.arg=c("Obama", 'Trump'))
+barplot(effs_tr[,1], ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', names.arg=c("Obama", 'Trump'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3, angle=90, code=3, length=0.05)  
