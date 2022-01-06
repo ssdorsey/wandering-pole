@@ -1,4 +1,4 @@
-
+rm(list=ls())
 library(MASS)
 library(ggplot2)
 library(dplyr)
@@ -9,6 +9,8 @@ library(lfe)
 library(data.table)
 library(lubridate)
 library(Hmisc)
+library(tidyverse)
+library(magrittr)
 # library(abmisc)
 
 ##Covariate Merging by Congress
@@ -135,12 +137,6 @@ DWmodelpost <- felm(pct.uncivil ~ DWscaled + Pres.Party + PVIscaled + chamber.y 
 
 stargazer(govmodelpre, govmodelpost, DWmodelpre, DWmodelpost, type="html", out = "Incivility Mods Pre Post.htm")
 
-### Plot seniority
-
-ggplot(congresstweets, aes(x=Seniority, y=pct.uncivil, shape=as.factor(republican), color=as.factor(republican))) +
-  geom_point() +
-  stat_smooth(aes(fill=as.factor(republican)))+
-  facet_wrap(~ congress.x)
 
 ### Plot results
 
@@ -149,15 +145,18 @@ ggplot(congresstweets, aes(x=Seniority, y=pct.uncivil, shape=as.factor(republica
 # Flexible function for each plot
 effPlotDat <- function(models, plot_vars){
   if(length(models)==1){
+    
+    # Pull model
     mod <- models[[1]]
+    
     # Pull coefficients
     coef_tab <- summary(mod)$coefficients
     coefs <- coef_tab[plot_vars,'Estimate']
+    coefs[names(coefs) %in% c('Pres.Party', 'Chamber.Majority')] <- abs(coefs[names(coefs) %in% c('Pres.Party', 'Chamber.Majority')]) # Reverse code president's party and chamber majority
     cis <- coef_tab[plot_vars,'Std. Error']*1.96
     
     # Combine/return
     effs <- data.frame(coef=coefs, ci=cis)
-    effs$coef[2] <- abs(effs$coef[2]) # because the President's party variable is coded as being *in* the president's party
     
   } else {
     effs <- sapply(models, function(mod){
@@ -174,43 +173,60 @@ effPlotDat <- function(models, plot_vars){
       as.data.frame() %>%
       mutate(coef=num(coef), ci=num(ci))
   }
-  # Deal with president's party reverse coding
-  if(any(str_detect(plot_vars, 'Party'))){
+  # Deal with president's party and chamber majority reverse coding
+  if(any(str_detect(plot_vars, 'Party|Chamber'))){
     effs$coef <- abs(effs$coef)
   }
   effs
 }
 
-# President's party and electoral safety
-effs_ps <- effPlotDat(models=list(govmodel), plot_vars=c('Pres.Party', 'PVIABS'))
+# President's party, chamber majority, and electoral safety
+effs_ps <- effPlotDat(models=list(govmodel), plot_vars=c('Pres.Party', 'PVIscaled', 'Chamber.Majority'))
 
 # Two versions of ideological extremity
-effs_ie <- effPlotDat(models=list(govmodel, DWmodel), plot_vars=c('govdist', 'DWdist'))
+effs_ie <- effPlotDat(models=list(govmodel, DWmodel), plot_vars=c('govscaled', 'DWscaled'))
 
 # Pre and post trump
-effs_tr <- effPlotDat(models=list(DWmodelpre, DWmodelpost), plot_vars='Pres.Party')
+effs_tr_pty <- effPlotDat(models=list(DWmodelpre, DWmodelpost), plot_vars='Pres.Party')
+effs_tr_maj <- effPlotDat(models=list(DWmodelpre, DWmodelpost), plot_vars='Chamber.Majority')
 
 # Plot president's party
-barCenters <- barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15))
+barCenters <- barplot(c(effs_ps[1,1], effs_tr_pty[,1]), ylim=c(-0.10, 3))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_party.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15), ylab='Change in Proportion Polarizing', names.arg=c("Overall", 'Obama', 'Trump'))
+barplot(c(effs_ps[1,1], effs_tr_pty[,1]), ylim=c(-0.10, 3), ylab='Change in Proportion Uncivil', names.arg=c("Overall", 'Obama', 'Trump'))
 segments(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3)
 arrows(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3, angle=90, code=3, length=0.05)  
 text(x=barCenters[1], y=effs_ps[1,1]/4, paste0(round(effs_ps[1,1], 2), ' +/- ', round(effs_ps[1,2], 3)))
 for(ii in 1:2){
-  segments(x0=barCenters[ii+1], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3)
-  arrows(x0=barCenters[ii+1], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3, angle=90, code=3, length=0.05)  
-  text(x=barCenters[ii+1], y=effs_tr[ii,1]/4, paste0(round(effs_tr[ii,1], 2), ' +/- ', round(effs_tr[ii,2], 3)))
+  segments(x0=barCenters[ii+1], y0=effs_tr_pty[ii,1]-effs_tr_pty[ii,2], y1=effs_tr_pty[ii,1]+effs_tr_pty[ii,2], lwd=3)
+  arrows(x0=barCenters[ii+1], y0=effs_tr_pty[ii,1]-effs_tr_pty[ii,2], y1=effs_tr_pty[ii,1]+effs_tr_pty[ii,2], lwd=3, angle=90, code=3, length=0.05)  
+  text(x=barCenters[ii+1], y=effs_tr_pty[ii,1]/4, paste0(round(effs_tr_pty[ii,1], 2), ' +/- ', round(effs_tr_pty[ii,2], 3)))
+}
+par(mar=c(5.1, 4.1, 4.1, 2.1))
+dev.off()
+
+# Plot chamber majority
+barCenters <- barplot(c(effs_ps[3,1], effs_tr_maj[,1]), ylim=c(-0.10, 2.5))
+pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_chamber_majority.pdf', width=6, height=6)
+par(mar=c(3.1, 4.1, 2.1, 1.1))
+barplot(c(effs_ps[1,1], effs_tr_maj[,1]), ylim=c(-0.10, 2.5), ylab='Change in Proportion Uncivil', names.arg=c("Overall", 'Obama', 'Trump'))
+segments(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3)
+arrows(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3, angle=90, code=3, length=0.05)  
+text(x=barCenters[1], y=effs_ps[1,1]/4, paste0(round(effs_ps[1,1], 2), ' +/- ', round(effs_ps[1,2], 3)))
+for(ii in 1:2){
+  segments(x0=barCenters[ii+1], y0=effs_tr_maj[ii,1]-effs_tr_maj[ii,2], y1=effs_tr_maj[ii,1]+effs_tr_maj[ii,2], lwd=3)
+  arrows(x0=barCenters[ii+1], y0=effs_tr_maj[ii,1]-effs_tr_maj[ii,2], y1=effs_tr_maj[ii,1]+effs_tr_maj[ii,2], lwd=3, angle=90, code=3, length=0.05)  
+  text(x=barCenters[ii+1], y=effs_tr_maj[ii,1]/4, paste0(round(effs_tr_maj[ii,1], 2), ' +/- ', round(effs_tr_maj[ii,2], 3)))
 }
 par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 # Electoral safety
-barCenters <- barplot(effs_ps[2,1], ylim=c(0, 0.005))
+barCenters <- barplot(effs_ps[2,1], ylim=c(0, 0.4))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_electoral_safety.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_ps[2,1], ylim=c(0, 0.005), xlim=c(-0.5, 2), ylab='Change in Proportion Polarizing', names.arg='')
+barplot(effs_ps[2,1], ylim=c(0, 0.4), xlim=c(-0.5, 2), ylab='Change in Proportion Uncivil', names.arg='Electoral Safety')
 segments(x0=barCenters, y0=effs_ps[2,1]-effs_ps[2,2], y1=effs_ps[2,1]+effs_ps[2,2], lwd=3)
 arrows(x0=barCenters, y0=effs_ps[2,1]-effs_ps[2,2], y1=effs_ps[2,1]+effs_ps[2,2], lwd=3, angle=90, code=3, length=0.05)  
 text(x=barCenters, y=effs_ps[2,1]/4, paste0(round(effs_ps[2,1], 3), ' +/- ', round(effs_ps[2,2], 3)))
@@ -218,28 +234,15 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 # Plot two ways to measure ideological extremity
-barCenters <- barplot(effs_ie[,1], ylim=c(0, 0.4))
+barCenters <- barplot(effs_ie[,1], ylim=c(0, 1))
 pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_ideology.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_ie[,1], ylim=c(0, 0.4), ylab='Change in Proportion Polarizing', 
+barplot(effs_ie[,1], ylim=c(0, 1), ylab='Change in Proportion Uncivil', 
         names.arg=c("GovTrack", 'DW-NOMINATE'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs_ie[ii,1]-effs_ie[ii,2], y1=effs_ie[ii,1]+effs_ie[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs_ie[ii,1]-effs_ie[ii,2], y1=effs_ie[ii,1]+effs_ie[ii,2], lwd=3, angle=90, code=3, length=0.05)  
   text(x=barCenters[ii], y=effs_ie[ii,1]/4, paste0(round(effs_ie[ii,1], 2), ' +/- ', round(effs_ie[ii,2], 3)))
-}
-par(mar=c(5.1, 4.1, 4.1, 2.1))
-dev.off()
-
-# Plot before and after Trump
-barCenters <- barplot(effs_tr[,1], ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_trump.pdf', width=6, height=6)
-par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs_tr[,1], ylim=c(0, 0.15), ylab='Change in Proportion Polarizing', names.arg=c("Obama", 'Trump'))
-for(ii in 1:2){
-  segments(x0=barCenters[ii], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3)
-  arrows(x0=barCenters[ii], y0=effs_tr[ii,1]-effs_tr[ii,2], y1=effs_tr[ii,1]+effs_tr[ii,2], lwd=3, angle=90, code=3, length=0.05)  
-  text(x=barCenters[ii], y=effs_tr[ii,1]/4, paste0(round(effs_tr[ii,1], 2), ' +/- ', round(effs_tr[ii,2], 3)))
 }
 par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
@@ -255,17 +258,21 @@ stargazer(govmodel, DWmodel, NPmodel, govmodel2, DWmodel2, NPmodel2, govmodel3, 
 
 ##########################################################################################################################################################################
 ##Official verus Campaign / Account level Models
-govmodel <- felm(pct.polarizing ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
-DWmodel <- felm(pct.polarizing ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
-NPmodel <- felm(pct.polarizing ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
+
+# Compute pct.uncivil by handle
+handletweets <- handletweets %>%
+  group_by(twitter_lower, congress) %>%
+  dplyr::summarize(
+    tweets = sum(tweets),
+    uncivil = sum(uncivil), 
+    official = unique(Official),
+    pct.uncivil = uncivil/tweets
+  ) %>%
+  ungroup()
+
+# Run models
+govmodel <- felm(pct.uncivil ~ govdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
+DWmodel <- felm(pct.uncivil ~ DWdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
+NPmodel <- felm(pct.uncivil ~ NPdist + Pres.Party + PVIABS + Chamber.Majority + chamber.y + female + republican + Official| congress.x, data = handletweets)
 
 
-
-###########################################################################################################################################################################
-##Pre-Trump split
-
-
-
-
-stargazer(govmodelpre, DWmodelpre, NPmodelpre, govmodelpost, DWmodelpost, NPmodelpost,
-          type="html",  out="Predictive Polarizing Models Trump.htm")

@@ -12,15 +12,16 @@ library(coefplot)
 setwd('~/Dropbox/Projects/Twitter')
 
 # Load classified tweets
-tw <- fread('~/Dropbox/Projects/Twitter/wandering-pole/wanderingpole/data/tweets_Jul2021_v2.csv', data.table=FALSE, stringsAsFactors=FALSE) #%>% dplyr::select(-V1)
+tw <- fread('~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv', data.table=FALSE, stringsAsFactors=FALSE)
+tw %<>% dplyr::select(-V1)
 tw %<>% 
   dplyr::rename(screen_name=author_username) %>%
   mutate(screen_name=tolower(screen_name)) %>%
   filter(!screen_name %in% c('', 'barackobama')) # Lots of Obama tweets for some reason
 
 # Load master list of handles to merge with member data
-hand <- fread('Twitter/master_handles.csv', data.table = FALSE, stringsAsFactors = FALSE) %>%
-  dplyr::rename(screen_name=twitter) %>%
+hand <- fread('~/Dropbox/Projects/Twitter/Twitter/US Congress Handles Master List.csv', data.table = FALSE, stringsAsFactors = FALSE) %>%
+  dplyr::rename(screen_name=twitter_lower) %>%
   mutate(screen_name=tolower(screen_name))
 hand$district[hand$chamber=='Senate'] <- 0
 hand$district[hand$state %in% c('AK', 'DE', 'MT', 'ND', 'SD', 'VT', 'WY')] <- 1
@@ -35,11 +36,11 @@ tw %<>%
   left_join(., hand, by='screen_name') 
 
 # Load data on members to merge in
-mcs <- readRDS('Twitter/Data/mergedMemberERData.rds')
+# mcs <- readRDS('~/Dropbox/Projects/Twitter/Data/mergedMemberERData.rds')
 
 # Convert date in TW to a date
-tw$datetime <- ymd_hms(tw$created_at)
-tw$date <- date(tw$datetime)
+#tw$datetime <- ymd_hms(tw$created_at)
+tw$date <- as.Date(tw$created_at)
 tw %<>% filter(!is.na(date))
 
 # Add Congress to tw
@@ -55,10 +56,6 @@ for(ii in 1:d(dates)){
   cong <- names(dates)[ii] %>% num()
   tw$congress[tw$date %within% dates[[ii]]] <- cong
 }
-
-# Filter to 110th-115th congresses
-tw %<>% filter(congress %in% 110:115)
-mcs %<>% filter(congress %in% 110:115)
 
 # Are there any duplicated mc entries?
 mcs %<>% mutate(id=paste0(congress, '_', icpsr))
