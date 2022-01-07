@@ -18,7 +18,11 @@ library(jtools)
 library(broom)
 library(broom.mixed)
 library(gridExtra)
+library(lfe)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
+
+
+### Load data
 
 # Load tweets data
 tweets <- fread("~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Final Analysis/Divisive/RR Files/activetweets111-116.csv", 
@@ -31,31 +35,37 @@ handles <- dplyr::select(handles, icpsr, twitter_lower, Official)
 # Merge to tweets data
 tweets <- left_join(tweets, handles, by='twitter_lower')
 
-# Pull in covariates (DW-NOMINATE, electoral safety, chamber, gender, seniority, member of president's party)
 
-# Pull average likes and retweets for each tweet
-avgEngage <- tweets %>%
-  group_by(twitter_lower) %>%
-  dplyr::summarise(
-    avgRT=mean(public_metrics.retweet_count),
-    avgFave=mean(public_metrics.like_count),
-    avgRTCiv=mean(public_metrics.retweet_count[uncivil2==0]),
-    avgFaveCiv=mean(public_metrics.like_count[uncivil2==0])
-  ) %>% 
+### Create and merge percent different from average engagement by handle-year
+
+# Add year variable
+tweets$year <- str_extract(tweets$created_at, '^[0-9]{4}')
+
+# Create year-handle identifier
+tweets$yearhandle <- paste0(as.character(tweets$twitter_lower), "-", as.character(tweets$year))
+
+# Create year-name averages for likes and retweets
+avgs <- tweets %>%
+  group_by(yearhandle) %>%
+  dplyr::summarize(
+    likeavg = mean(public_metrics.like_count),
+    retweetavg = mean(public_metrics.retweet_count)
+  ) %>%
   ungroup()
 
-# Join to tweets
-tweets <- left_join(tweets, avgEngage, by='twitter_lower')
+# Merge engagement averages to tweets
+tweets <- merge(tweets, avgs, by = "yearhandle")
 
-# Compute difference between the likes/RTs on each tweet and the averages
-tweets %<>%
-  mutate(rtDiff = public_metrics.retweet_count - avgRT) %>%
-  mutate(rtDiffCiv = public_metrics.retweet_count - avgRTCiv) %>%
-  mutate(faveDiff = public_metrics.like_count - avgFave) %>%
-  mutate(faveDiffCiv = public_metrics.like_count - avgFaveCiv)
+# Difference from average engagement by handle-year
+tweets$likediff <- (tweets$public_metrics.like_count - tweets$likeavg)
+tweets$retweetdiff <- (tweets$public_metrics.retweet_count - tweets$retweetavg)
+
+# Turn differences into percentages
+tweets$likepct <- ((tweets$public_metrics.like_count - tweets$likeavg) / tweets$likeavg) * 100
+tweets$retweetpct <- ((tweets$public_metrics.retweet_count - tweets$retweetavg) / tweets$retweetavg) * 100
 
 
-### Covariate Merging by Congress
+### Merge covariates by congress
 
 # NOMINATE data
 nominate <- read.csv("~/Dropbox/Projects/Twitter/Twitter/covariateData/RR/HSall_members2021.csv")
@@ -214,60 +224,6 @@ stargazer(mFave, mRT, font.size='small', label='exposureTab', colnames=FALSE,
 
 
 ###################################################################################################################################################################################################################################
-### Coefficient plots
-
-# Named vector to loop through (and a list to store the plots in)
-# mods <- c(rtMod='Retweets above Average', rtCivMod='Retweets above Average (Civil)',
-#           faveMod='Likes above Average', faveCivMod='Likes above Average (Civil)')
-# coefPlots <- list()
-# 
-# for(ii in 1:length(mods)){
-#   # Load a model
-#   mod <- readRDS(file=paste0('~/Dropbox/Projects/Twitter/', names(mods)[ii], '.RData'))
-# 
-#   # Save coefficient plot as a ggplot object
-#   modPlot <- plot_coefs(mod,
-#                          coefs=c(`Incivility`='polarizing', `Ideological Extremity`='ideolDiffPos', `President's Party`='memberPresPty', `Electoral Safety`='absPVI', `House`='house', `Female`='female', `Seniority`='years'),
-#                          scale=TRUE,
-#                          inner_ci_level=0.9,
-#                          colors=c('black')) +
-#     xlab('Coefficient') +
-#     ggtitle(mods[ii]) +
-#     theme(plot.title = element_text(hjust = 0.5))
-# 
-#   # Store ggplot object in the plots list
-#   coefPlots[[ii]] <- modPlot
-# 
-#   # Remove the model object, garbage clean
-#   rm(mod); gc()
-# }
-# 
-# # Plot all together
-# pdf('~/Dropbox/Projects/Twitter/engageModsAll.pdf', width=12, height=12)
-# par(mfrow=c(2,2))
-# do.call(grid.arrange, c(coefPlots, list(layout_matrix=rbind( c(1, 2), c(3, 4) ) ) ) )
-# #grid.arrange(coefPlots[[1]], coefPlots[[2]], coefPlots[[3]], coefPlots[[4]],
-#              # layout_matrix=rbind(c(1, 2), c(3, 4)))
-# par(mfrow=c(1,1))
-# dev.off()
-# 
-# # Plot just the effects for the overall average changes
-# pdf('~/Dropbox/Projects/Twitter/engageMods.pdf', width=10, height=6)
-# par(mfrow=c(2,2))
-# grid.arrange(coefPlots[[1]], coefPlots[[3]], layout_matrix=rbind(c(1, 2)))
-# par(mfrow=c(1,1))
-# dev.off()
-# 
-# # Plot just the effects for the changes relative to civil tweets
-# pdf('~/Dropbox/Projects/Twitter/engageModsCivil.pdf', width=10, height=6)
-# par(mfrow=c(2,2))
-# grid.arrange(coefPlots[[2]], coefPlots[[4]], layout_matrix=rbind(c(1, 2)))
-# par(mfrow=c(1,1))
-# dev.off()
-
-
-
-###################################################################################################################################################################################################################################
 ### Effects plots
 
 # Pull effect size (coefficient in LMs) and CI (1.96*SE)
@@ -304,16 +260,8 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 ###############################################################################################################################################################################
 ### Effects of polarizing rhetoric on engagement in each year
 
-# Pull out year variable
-tweets$year <- format(as.Date(tweets$created_at, format="%y/%m/%d"),"%Y")
+# Numeric year variable for 
 tweets$years_num <- num(tweets$year)
-
-# Create yearhandle
-tweets %<>% mutate(yearhandle=paste0(twitter_lower, '_', years_num))
-
-# Create variables for *percent* difference in likes and retweets 
-tweets$likepct <- ((tweets$public_metrics.like_count - tweets$avgFave) / tweets$avgFave) * 100
-tweets$retweetpct <- ((tweets$public_metrics.retweet_count - tweets$avgRT) / tweets$avgRT) * 100
 
 # Set up empty lists to save models
 years <- 2010:2020
@@ -331,7 +279,7 @@ for(ii in seq_along(years)){
 
 stargazer(likes10, likes11, likes12, likes13, likes14, likes15, likes16, likes17, 
           likes18, likes19, likes20, rts10, rts11, rts12, rts13, rts14, rts15, rts16, rts17, rts18, rts19, rts20,
-          type="html",  out="Engagement Tweet Models Yearly.htm")
+          out="Engagement Tweet Models Yearly.tex")
 
 #### extract coefficients and errors
 
@@ -363,8 +311,7 @@ effs_rts$ci_lo_ovr <- effs[2,'coef']-effs[2,'ci']
 effs_rts$ci_hi_ovr <- effs[2,'coef']+effs[2,'ci']
 
 
-
-#### plot coefficients and standard errors
+### Make effects plots
 
 # Likes
 likes_plot <- ggplot(data=effs_likes, mapping=aes(year, coef)) + 
