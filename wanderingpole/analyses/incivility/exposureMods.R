@@ -19,6 +19,7 @@ library(broom)
 library(broom.mixed)
 library(gridExtra)
 library(lfe)
+library(stargazer)
 setwd('~/Dropbox/Projects/Twitter/Twitter')
 
 
@@ -201,10 +202,10 @@ tweets %<>%
 ### Models predicting exposure
 
 # Run models, save (takes about 40min per model)
-mRT <- lm(retweetpct ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tweets)
+mRT <- lm(retweetpct ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr - 1, data=tweets)
 saveRDS(mRT, file='~/Dropbox/Projects/Twitter/rtMod_uncivil.RData'); rm(mRT); gc()
-mFave <- lm(faveDiff ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tweets)
-saveRDS(likepct, file='~/Dropbox/Projects/Twitter/faveMod_uncivil.RData'); rm(mFave); gc()
+mFave <- lm(likepct ~ uncivil2 + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr - 1, data=tweets)
+saveRDS(mFave, file='~/Dropbox/Projects/Twitter/faveMod_uncivil.RData'); rm(mFave); gc()
 #mRTCiv <- speedlm(rtDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
 #saveRDS(mRTCiv, file='~/Dropbox/Projects/Twitter/rtCivMod.RData'); rm(mRTCiv); gc()
 #mFaveCiv <- speedlm(faveDiffCiv ~ polarizing + memberPresPty + ideolDiffPos + absPVI + house + female + years + congress + icpsr, data=tw)
@@ -243,10 +244,10 @@ effs <- sapply(list(mFave, mRT), function(x){
   t()
 
 # Plot and save
-barCenters <- barplot(effs[,1], ylim=c(0, 1000))
+barCenters <- barplot(effs[,1], ylim=c(0, 150))
 pdf('~/Dropbox/Projects/Twitter/engageMods_effects_incivility.pdf', width=6, height=6)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
-barplot(effs[,1], ylim=c(0, 1000), ylab='Effect of Political Incivility', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
+barplot(effs[,1], ylim=c(0, 150), ylab='Effect of Political Incivility', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
   segments(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3)
   arrows(x0=barCenters[ii], y0=effs[ii,1]-effs[ii,2], y1=effs[ii,1]+effs[ii,2], lwd=3, angle=90, code=3, length=0.05)  
@@ -277,9 +278,13 @@ for(ii in seq_along(years)){
   rts_mods[[ii]] <- rts_mod
 }
 
-stargazer(likes10, likes11, likes12, likes13, likes14, likes15, likes16, likes17, 
-          likes18, likes19, likes20, rts10, rts11, rts12, rts13, rts14, rts15, rts16, rts17, rts18, rts19, rts20,
-          out="Engagement Tweet Models Yearly.tex")
+# Tables for appendix
+stargazer(likes_mods, font.size='tiny', keep.stat=c('n', 'adj.rsq'), label='likeTabTime', covariate.labels='Uncivil',
+          omit.table.layout='n', star.cutoffs=NA, dep.var.labels.include=FALSE, column.labels=char(2010:2020), column.sep.width='0pt',
+          title='OLS Models predicting the number of likes relative to the average tweet for each member, by year.') 
+stargazer(rts_mods, font.size='tiny', keep.stat=c('n', 'adj.rsq'), label='rtTabTime', covariate.labels='Uncivil',
+          omit.table.layout='n', star.cutoffs=NA, dep.var.labels.include=FALSE, column.labels=char(2010:2020), column.sep.width='0pt',
+          title='OLS Models predicting the number of retweets relative to the average tweet for each member, by year.') 
 
 #### extract coefficients and errors
 
