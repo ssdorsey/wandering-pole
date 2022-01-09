@@ -246,7 +246,7 @@ effs_month <- lapply(list(monthamount, monthdonors), function(x){
 # Plot weekly effects
 barCenters_amt <- barplot(effs_week[[1]][,'coef'], ylim=c(0, 400))
 barCenters_don <- barplot(effs_week[[2]][,'coef'], ylim=c(0, 3.5))
-pdf('~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Donors Remerge Files/polarizing_weekly_effects.pdf', width=16, height=8)
+jpeg('~/Dropbox/Projects/Twitter/polarizing_weekly_effects.jpg', width=16, height=8, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1), mfrow=c(1,2))
 barplot(effs_week[[1]][,'coef'], ylim=c(0, 400), ylab='Weekly Fundraising Amount Increase', names.arg=c('# Polarizing', '# Tweets', '% Polarizing', '(# Polarizing) * \n(% Polarizing)'))
 for(ii in 1:4){
@@ -267,7 +267,7 @@ dev.off()
 # Plot monthly effects
 barCenters_amt <- barplot(effs_month[[1]][,'coef'], ylim=c(0, 700))
 barCenters_don <- barplot(effs_month[[2]][,'coef'], ylim=c(0, 5.5))
-pdf('~/Dropbox/Projects/Twitter/Twitter/covariateData/Merged Data/Donors Remerge Files/polarizing_monthly_effects.pdf', width=16, height=8)
+jpeg('~/Dropbox/Projects/Twitter/polarizing_monthly_effects.jpg', width=16, height=8, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1), mfrow=c(1,2))
 barplot(effs_month[[1]][,'coef'], ylim=c(0, 700), ylab='Monthly Fundraising Amount Increase', names.arg=c('# Polarizing', '# Tweets', '% Polarizing', '(# Polarizing) * \n(% Polarizing)'))
 for(ii in 1:4){

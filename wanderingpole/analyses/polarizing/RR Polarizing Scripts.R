@@ -190,7 +190,7 @@ effs_tr <- effPlotDat(models=list(DWmodelpre, DWmodelpost), plot_vars='Pres.Part
 
 # Plot president's party
 barCenters <- barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_party.pdf', width=6, height=6)
+jpeg('~/Dropbox/Projects/Twitter/incivilityMods_effects_party.jpg', width=6, height=6, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(c(effs_ps[1,1], effs_tr[,1]), ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', names.arg=c("Overall", 'Obama', 'Trump'))
 segments(x0=barCenters[1], y0=effs_ps[1,1]-effs_ps[1,2], y1=effs_ps[1,1]+effs_ps[1,2], lwd=3)
@@ -206,7 +206,7 @@ dev.off()
 
 # Electoral safety
 barCenters <- barplot(effs_ps[2,1], ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_electoral_safety.pdf', width=6, height=6)
+jpeg('~/Dropbox/Projects/Twitter/incivilityMods_effects_electoral_safety.jpg', width=6, height=6, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs_ps[2,1], ylim=c(0, 0.15), xlim=c(-0.5, 2), ylab='Effect on Proportion Polarizing', names.arg='')
 segments(x0=barCenters, y0=effs_ps[2,1]-effs_ps[2,2], y1=effs_ps[2,1]+effs_ps[2,2], lwd=3)
@@ -217,7 +217,7 @@ dev.off()
 
 # Plot two ways to measure ideological extremity
 barCenters <- barplot(effs_ie[,1], ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_ideology.pdf', width=6, height=6)
+jpeg('~/Dropbox/Projects/Twitter/incivilityMods_effects_ideology.jpg', width=6, height=6, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs_ie[,1], ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', 
         names.arg=c("GovTrack", 'DW-NOMINATE'))
@@ -231,7 +231,7 @@ dev.off()
 
 # Plot before and after Trump
 barCenters <- barplot(effs_tr[,1], ylim=c(0, 0.15))
-pdf('~/Dropbox/Projects/Twitter/incivilityMods_effects_trump.pdf', width=6, height=6)
+jpeg('~/Dropbox/Projects/Twitter/incivilityMods_effects_trump.jpg', width=6, height=6, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs_tr[,1], ylim=c(0, 0.15), ylab='Effect on Proportion Polarizing', names.arg=c("Obama", 'Trump'))
 for(ii in 1:2){

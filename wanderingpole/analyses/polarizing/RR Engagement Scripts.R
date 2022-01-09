@@ -60,7 +60,7 @@ effs_pct <- sapply(pct_change, effPlotDat) %>% t() %>% as.data.frame()
 
 #### plot coefficients
 barCenters <- barplot(effs_raw$coef, ylim=c(0, 40))
-pdf('~/Dropbox/Projects/Twitter/Divisivefollowerchange.pdf', width=8, height=8)
+jpeg('~/Dropbox/Projects/Twitter/Divisivefollowerchange.jpg', width=8, height=8, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs_raw$coef, ylim=c(0, 40), ylab='Weekly Numerical Change in Twitter Followers', names.arg=c('# Polarizing', '# Tweets', '% Polarizing'))
 for(ii in 1:3){
@@ -72,7 +72,7 @@ par(mar=c(5.1, 4.1, 4.1, 2.1))
 dev.off()
 
 barCenters <- barplot(effs_pct$coef, ylim=c(0, 0.03))
-pdf('~/Dropbox/Projects/Twitter/DivisivefollowerchangePct.pdf', width=8, height=8)
+jpeg('~/Dropbox/Projects/Twitter/DivisivefollowerchangePct.jpg', width=8, height=8, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs_pct$coef, ylim=c(0, 0.03), ylab='Weekly Percent Change in Twitter Followers', names.arg=c('# Polarizing', '# Tweets', '% Polarizing'))
 for(ii in 1:3){
@@ -155,7 +155,7 @@ effs <- sapply(list(likes, rts), function(x){
 #### plot coefficients
 
 barCenters <- barplot(effs[,1], ylim=c(0, 600))
-pdf('~/Dropbox/Projects/Twitter/engageMods_effects_polarizing.pdf', width=6, height=6)
+jpeg('~/Dropbox/Projects/Twitter/engageMods_effects_polarizing.jpg', width=6, height=6, units='in', res=300)
 par(mar=c(3.1, 4.1, 2.1, 1.1))
 barplot(effs[,1], ylim=c(0, 600), ylab='Effect of Polarizing Rhetoric', names.arg=c('Likes above\nAverage', 'Retweets above\nAverage'))
 for(ii in 1:2){
@@ -177,9 +177,9 @@ rts_mods <- vector(mode='list', length=d(years))
 tweetsavgs %<>% mutate(years_num=num(year))
 
 for(ii in seq_along(years)){
-  mod_df <- filter(tweetsavg, years_num==years[ii])
+  mod_df <- filter(tweetsavgs, years_num==years[ii])
   likes_mod <- felm(likepct ~ polarizing | yearhandle + created_at, data = mod_df)
-  rts_mod <- felm(retweetavg ~ polarizing | yearhandle + created_at, data = mod_df)
+  rts_mod <- felm(retweetpct ~ polarizing | yearhandle + created_at, data = mod_df)
   likes_mods[[ii]] <- likes_mod
   rts_mods[[ii]] <- rts_mod
 }
@@ -247,6 +247,6 @@ rts_plot <- ggplot(data=effs_rts, mapping=aes(year, coef)) +
   theme(panel.grid.minor.x = element_blank(), panel.grid.major.x=element_blank())
 
 # Plot together
-pdf(file='~/Dropbox/Projects/Twitter/engagement_effects_over_time.pdf', width=6, height=6)
+jpeg(file='~/Dropbox/Projects/Twitter/engagement_effects_over_time.jpg', width=6, height=6, units='in', res=300)
 cowplot::plot_grid(likes_plot, rts_plot, ncol=1)
 dev.off()
