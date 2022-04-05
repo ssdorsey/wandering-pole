@@ -57,7 +57,7 @@ db = MongoClient(mongo_uri).wanderingpole
 # import the data
 # -----------------
 # The old data
-old = pd.read_csv(r"D:\Dropbox\wandering-pole\wanderingpole\data\combined_training_ab.csv")
+old = pd.read_csv("../data/combined_training_ab.csv")
 # old = old.sort_values(by='screen_name')
 # text_clean = []
 # for ii in tqdm(old.index):

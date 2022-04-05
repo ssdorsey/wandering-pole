@@ -53,8 +53,8 @@ model = ClassificationModel(
         , 'training_batch_size': 2048
         , 'eval_batch_size': 2048
         , 'num_train_epochs': 10
-        , 'output_dir': r'ModelOutput/'
-        , 'cache_dir': r'ModelOutput/'}
+        , 'output_dir': r'TrumpModel/'
+        , 'cache_dir': r'TrumpModel/'}
 )
 
 # Train

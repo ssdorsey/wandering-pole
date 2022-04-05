@@ -23,7 +23,6 @@ with open(get_cred_path('mongo_uri.txt'), 'r') as _file:
 
 db = MongoClient(mongo_uri).wanderingpole
 
-
 search_args = load_credentials(get_cred_path('.twitter_keys.yaml'),
                                        yaml_key="search_tweets_v2",
                                        env_overwrite=True)
