@@ -66,7 +66,7 @@ monthly <- monthly %>%
 
 #Plot goes here....... (figure 2)
 plotdf <- filter(monthly, Party!='I')
-pdf(file='~/Dropbox/Projects/Twitter/monthlyPolarizingTweets.pdf', width=10, height=7)
+jpeg(filename='~/Dropbox/Projects/Twitter/monthlyPolarizingTweets.jpg', width=10, height=7, units='in', res=300)
 par(mar=c(5,4,1,1)+0.1)
 months <- sort(unique(plotdf$yearmonthdate))
 monthsindex <- months[str_detect(months, '-01-01|-07-01')]
